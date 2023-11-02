@@ -1,0 +1,17 @@
+{
+  "Hawthorne": {
+    "latitude": 33.919434,
+    "longitude": -118.353996,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Redondo Beach": {
+    "latitude": 33.849182,
+    "longitude": -118.388405,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Hermosa Beach": {
+    "latitude": 33.862141,
+    "longitude": -118.400009,
+    "timezone": "America%2FLos_Angeles"
+  }
+}
