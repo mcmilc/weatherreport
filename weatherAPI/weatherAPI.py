@@ -1,4 +1,3 @@
-from os import walk
 import pycurl
 from io import BytesIO
 
