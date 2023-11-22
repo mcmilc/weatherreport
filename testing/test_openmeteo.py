@@ -18,8 +18,7 @@ def main():
         "daily": weather_parameter,
     }
     wAPI = WeatherAPI()
-    wAPI.request(wAPI.build_full_url(main_url, parameters))
-    out = weather_api_client.retrieve_response()
+    out = wAPI.request(wAPI.build_full_url(main_url, parameters))
     result = json.loads(out)
     print(result)
 

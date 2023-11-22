@@ -1,3 +1,4 @@
+from os import walk
 import pycurl
 from io import BytesIO
 
@@ -12,7 +13,7 @@ class WeatherAPI:
         self._parameter_sep = "&"
         self.client = client
 
-    def build_full_url(self, root_url, parameters: dict):
+    def build_full_url(self, root_url: str, parameters: dict):
         url = root_url
         for i, key_value in enumerate(parameters.items()):
             if i == 0:
