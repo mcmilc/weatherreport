@@ -25,7 +25,7 @@ class WeatherClient:
         full_url = self._api.build_full_url(url, parameters)
         return json.loads(self._api.request(full_url))
 
-    def get_temperature_forecast(self, city: str, days: int, interval: str) -> dict:
+    def get_forecasted_temperature(self, city: str, days: int, interval: str) -> dict:
         """Returns forecasted temperature
 
         Args:
@@ -34,9 +34,9 @@ class WeatherClient:
             interval (str): either hourly or daily
 
         Returns:
-            dict          : dictionary containing forecasted temperature with timestamps
+            dict: dictionary containing forecasted temperature with timestamps
         """
-        url = self._api_info["forecast"]["main_url"]
+        url = self._api_info["forecasted"]["main_url"]
         parameters = {
             "latitude": str(self._city_info[city]["latitude"]),
             "longitude": str(self._city_info[city]["longitude"]),
@@ -56,7 +56,7 @@ class WeatherClient:
             interval  (str): either hourly or daily
 
         Returns:
-            dict          : dictionary containing forecasted temperature with timestamps
+            dict: dictionary containing forecasted temperature with timestamps
         """
         url = self._api_info["forecasted"]["main_url"]
         parameters = {
@@ -82,7 +82,7 @@ class WeatherClient:
             interval   (str): hourly or daily
 
         Returns:
-            dict          : dictionary containing historical temperature with timestamps
+            dict: dictionary containing historical temperature with timestamps
         """
         url = self._api_info["historical"]["main_url"]
         interval_param = (
@@ -123,7 +123,7 @@ def weatherClientFactory():
     """Simple weatherClient factory
 
     Returns:
-        weatherClient :
+        WeatherClient
     """
     api_info = read_json(filename=pjoin(sbw_root, "data", "api_info.json"))
     city_info = read_json(filename=pjoin(sbw_root, "data", "city_info.json"))

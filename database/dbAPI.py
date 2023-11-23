@@ -6,7 +6,9 @@ from southbayweather.utilities.helpers import read_json
 from southbayweather.utilities.helpers import generate_uuid
 from southbayweather.utilities.helpers import round_val
 from southbayweather.database.queries import generate_flush_table_query
+from southbayweather.database.queries import get_city_id_query
 from southbayweather.database.queries import add_historical_temperature
+from southbayweather.database.queries import add_current_temperature
 
 
 def MySQLConnectorFactory():
@@ -25,43 +27,80 @@ def get_errorcode_flag(code):
 
 class MySQLAPI:
     def __init__(self, connector=MySQLConnectorFactory()):
-        self.con = connector
+        self.connector = connector
+
+    def _get_city_id(self, city: str) -> str:
+        cursor = self.connector.cursor()
+        query = get_city_id_query(city)
+        self._execute_query(cursor=cursor, query=query)
+        city_id = None
+        for result in cursor:
+            city_id = result
+        if city_id is None:
+            raise Exception(f"No city named '{city}' in database")
+        elif len(city_id) != 1:
+            raise Exception(f"Multiple city ids found for '{city}'")
+        city_id = str(city_id[0])
+        cursor.close()
+        return city_id
+
+    def _execute_query(self, cursor, query, params=None):
+        try:
+            cursor.execute(query, params=params)
+        except mysql.connector.Error as err:
+            print(
+                f"MYSQL ERROR: {err.msg}, ERROR-CODE-FLAG: {get_errorcode_flag(err.errno)}"
+            )
 
     def populate_historical_temperature(
-        self, timestamps: list, historical_temperature: list, city_id: int
+        self, timestamps: list, historical_temperature: list, city: int
     ) -> None:
         """Write historical temperature into database
 
         Args:
             historical_temperature (dict)
         """
-        cur = self.con.cursor()
+        cursor = self.connector.cursor()
+        city_id = self._get_city_id(city)
         for s_time, temp in zip(timestamps, historical_temperature):
             if temp is not None:
                 uuid = generate_uuid(s_time=s_time)
-                historical_entry = {
+                params = {
                     "historical_temperature_id": uuid,
                     "city_id": city_id,
                     "time_measured": s_time,
                     "temperature": round_val(temp),
                 }
-                try:
-                    cur.execute(add_historical_temperature, historical_entry)
-                except mysql.connector.Error as err:
-                    print(
-                        f"MYSQL ERROR: {err.msg}, ERROR-CODE-FLAG: {get_errorcode_flag(err.errno)}"
-                    )
-                    continue
+                self._execute_query(
+                    cursor=cursor, query=add_historical_temperature, params=params
+                )
+        # commit required for DELETE
+        self.connector.commit()
+        cursor.close()
 
-        self.con.commit()
-        cur.close()
+    def populate_current_temperature(
+        self, timestamp: str, current_temperature: int, city: str
+    ):
+        cursor = self.connector.cursor()
+        city_id = self._get_city_id(city)
+        uuid = generate_uuid(s_time=timestamp)
+        params = {
+            "current_temperature_id": uuid,
+            "city_id": city_id,
+            "time_measured": timestamp,
+            "temperature": current_temperature,
+        }
+        self._execute_query(cursor=cursor, query=add_current_temperature, params=params)
+        self.connector.commit()
+        cursor.close()
 
     def flush_table(self, table_name):
-        cur = self.con.cursor()
+        cursor = self.connector.cursor()
         query = generate_flush_table_query(table_name)
-        cur.execute(query)
-        self.con.commit()
-        cur.close()
+        self._execute_query(cursor=cursor, query=query)
+        # commit required for DELETE
+        self.connector.commit()
+        cursor.close()
 
 
 if __name__ == "__main__":
