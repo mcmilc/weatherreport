@@ -1,6 +1,6 @@
 {
     "temperature_unit": "fahrenheit",
-    "forecast": {
+    "forecasted": {
         "main_url": "https://api.open-meteo.com/v1/forecast"
     },
     "historical": {

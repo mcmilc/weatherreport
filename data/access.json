@@ -1,5 +1,12 @@
 {
     "mysql": {
-        "passwd": "IlMySQL48!"
+        "passwd": "IlMySQL48!",
+        "db_name": "southbay_weather_db",
+        "tables": {
+            "historical": "historical_temperature",
+            "forecasted": "forecasted_temperature",
+            "current": "current_temperature",
+            "city": "city"
+        }
     }
 }

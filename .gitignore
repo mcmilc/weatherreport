@@ -2,3 +2,4 @@
 __pycache__
 .mypy_cache
 database/bubbly-mission-402701-357b024147cf.json
+data/access.json
