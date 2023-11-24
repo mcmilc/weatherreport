@@ -13,14 +13,30 @@ add_historical_temperature = (
 )
 
 add_current_temperature = (
-    f"INSERT INTO {current_table} (current_temperature_id, city_id, time_measured, temperature)"
-    f"Values (%(current_temperature_id)s, %(city_id)s, %(time_measured)s, %(temperature)s)"
+    f"INSERT INTO {current_table} (city_id, time_measured, temperature)"
+    f"Values (%(city_id)s, %(time_measured)s, %(temperature)s)"
 )
 
 
-def get_city_id_query(city):
+def update_current_temperature(city_id: int, temperature: int, timestamp: str):
+    update_current_temperature = (
+        f"UPDATE {current_table} "
+        f"SET "
+        f"city_id = {city_id}, "
+        f"temperature = {temperature}, "
+        f"time_measured = '{timestamp}' "
+        f"WHERE city_id = {city_id}"
+    )
+    return update_current_temperature
+
+
+def has_city_current_temperature_query(city_id: int):
+    return f"SELECT city_id FROM current_temperature WHERE city_id = {city_id}"
+
+
+def get_city_id_query(city: str):
     return f"SELECT city_id FROM city WHERE name = '{city}'"
 
 
-def generate_flush_table_query(table_name):
+def flush_table_query(table_name: str):
     return f"DELETE FROM {table_name}"

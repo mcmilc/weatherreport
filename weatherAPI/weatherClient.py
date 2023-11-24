@@ -108,7 +108,7 @@ class WeatherClient:
         Returns:
             dict: current temperature data
         """
-        url = self._api_info["forecast"]["main_url"]
+        url = self._api_info["forecasted"]["main_url"]
         parameters = {
             "latitude": str(self._city_info[city]["latitude"]),
             "longitude": str(self._city_info[city]["longitude"]),

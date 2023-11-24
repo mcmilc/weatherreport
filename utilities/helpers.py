@@ -28,4 +28,5 @@ def generate_uuid(s_time: str) -> int:
         int: absolute time
     """
     dt_time = dt.datetime.strptime(s_time, "%Y-%m-%dT%H:%M")
+    print(dt_time.timestamp())
     return round_val(dt_time.timestamp())
