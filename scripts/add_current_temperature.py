@@ -1,9 +1,9 @@
 import sys
 import getopt
-from southbayweather.utilities.helpers import build_date
+
+from southbayweather.database.dbAPI import MySQLAPIFactory
 from southbayweather.transforms.filters import filter_current_temperature
 from southbayweather.weatherAPI.weatherClient import weatherClientFactory
-from southbayweather.database.dbAPI import MySQLAPIFactory
 
 
 def parse_date_arg(input_date):

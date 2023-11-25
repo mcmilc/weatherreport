@@ -15,6 +15,10 @@ from southbayweather.database.queries import add_historical_temperature
 from southbayweather.database.queries import add_current_temperature
 from southbayweather.database.queries import update_current_temperature
 from southbayweather.database.queries import has_city_current_temperature_query
+from southbayweather.database.queries import get_max_historical_temperature_for_city
+from southbayweather.database.queries import get_max_historical_temperature_timestamps
+from southbayweather.database.queries import get_all_max_historical_temperatures
+from southbayweather.database.queries import get_current_temperature
 
 
 def MySQLAPIFactory():
@@ -32,7 +36,7 @@ def get_errorcode_flag(code):
         return flag[0]
 
 
-def has_query_result(cursor):
+def query_has_result(cursor) -> bool:
     output = []
     for result in cursor:
         output = result
@@ -79,7 +83,7 @@ class MySQLAPI:
         city_id = self._get_city_id(city)
         query = has_city_current_temperature_query(city_id)
         execute_query(cursor=cursor, query=query)
-        result = has_query_result(cursor)
+        result = query_has_result(cursor)
         cursor.close()
         return result
 
@@ -95,7 +99,7 @@ class MySQLAPI:
         city_id = self._get_city_id(city)
         for s_time, temp in zip(timestamps, temperature):
             if temp is not None:
-                uuid = generate_uuid(s_time=s_time)
+                uuid = generate_uuid(s_time=s_time, city_id=city_id)
                 params = {
                     "historical_temperature_id": uuid,
                     "city_id": city_id,
@@ -129,6 +133,49 @@ class MySQLAPI:
             execute_query(cursor=cursor, query=add_current_temperature, params=params)
         self.connector.commit()
         cursor.close()
+
+    def get_max_temperature(self, city: str):
+        cursor = self.connector.cursor()
+        query = get_max_historical_temperature_for_city(city)
+        execute_query(cursor=cursor, query=query)
+        max_temperature = None
+        for result in cursor:
+            max_temperature = result[0]
+        cursor.close()
+        return max_temperature
+
+    def get_max_temperature_timestamps(self, city, temperature):
+        cursor = self.connector.cursor()
+        query = get_max_historical_temperature_timestamps(
+            city=city, temperature=temperature
+        )
+        execute_query(cursor=cursor, query=query)
+        timestamps = []
+        for result in cursor:
+            timestamps.append(result[0])
+        cursor.close()
+        return timestamps
+
+    def get_all_max_temperatures(self):
+        cursor = self.connector.cursor()
+        query = get_all_max_historical_temperatures()
+        execute_query(cursor=cursor, query=query)
+        output = []
+        for result in cursor:
+            output.append(result)
+        cursor.close()
+        return output
+
+    def get_current_temperature(self, city: str):
+        if self._has_city_current_temperature(city):
+            cursor = self.connector.cursor()
+            query = get_current_temperature(city)
+            execute_query(cursor=cursor, query=query)
+            temperature = None
+            for result in cursor:
+                temperature, timestamp = result
+            cursor.close()
+            return temperature, timestamp
 
     def flush_table(self, table_name):
         cursor = self.connector.cursor()

@@ -18,7 +18,7 @@ def round_val(value: float) -> np.int32:
     return int(np.round(value))
 
 
-def generate_uuid(s_time: str) -> int:
+def generate_uuid(s_time: str, city_id: int = 1) -> int:
     """Generates uuid based on absolute time in int format
 
     Args:
@@ -28,5 +28,4 @@ def generate_uuid(s_time: str) -> int:
         int: absolute time
     """
     dt_time = dt.datetime.strptime(s_time, "%Y-%m-%dT%H:%M")
-    print(dt_time.timestamp())
-    return round_val(dt_time.timestamp())
+    return round_val(dt_time.timestamp()) + int(city_id)

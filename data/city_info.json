@@ -13,5 +13,25 @@
     "latitude": 33.862141,
     "longitude": -118.400009,
     "timezone": "America%2FLos_Angeles"
+  },
+  "El Segundo": {
+    "latitude": 33.919182,
+    "longitude": -118.416466,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Manhattan Beach": {
+    "latitude": 33.881248,
+    "longitude": -118.407211,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Torrance": {
+    "latitude": 33.840763,
+    "longitude": -118.345413,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Inglewood": {
+    "latitude": 33.961018,
+    "longitude": -118.35537,
+    "timezone": "America%2FLos_Angeles"
   }
 }

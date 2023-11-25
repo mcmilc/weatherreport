@@ -1,8 +1,12 @@
 import json
 from southbayweather.config.config import sbw_root
+
+# HELPERS
 from southbayweather.utilities.helpers import pjoin
 from southbayweather.utilities.helpers import read_json
 from southbayweather.utilities.helpers import build_date
+
+# Weather API
 from southbayweather.weatherAPI.weatherAPI import WeatherAPI
 
 
