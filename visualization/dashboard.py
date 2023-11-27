@@ -24,7 +24,7 @@ app.layout = html.Div(
         dcc.Graph(id="max_temperature", figure={}),
         dcc.Interval(
             id="interval_component",
-            interval=300 * 1000,  # in milliseconds
+            interval=30 * 1000,  # in milliseconds
             n_intervals=0,
         ),
     ]
@@ -39,7 +39,8 @@ app.layout = html.Div(
     Input(component_id="interval_component", component_property="n_intervals"),
 )
 def update_current_temperature(n):
-    df_current = pd.DataFrame(columns=["city", "temperature", "timestamps"])
+    print("update")
+    df_current = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     for city in get_all_city_names():
         temperature, timestamp = mysqlAPI.get_current_temperature(city)
         df_current = pd.concat(
@@ -71,33 +72,6 @@ def update_current_temperature(n):
     fig = px.bar(df_max, x="city", y="temperature")
     return [df_current.to_dict("records"), fig]
 
-
-"""
-@callback(
-    Output(component_id="max_temperature", component_property="figure"),
-    Input(component_id="interval_component", component_property="n_intervals"),
-)
-def update_max_temperature(n):
-    df = pd.DataFrame(columns=["city", "temperature", "timestamp"])
-    results = mysqlAPI.get_all_max_temperatures()
-    print("before 2")
-    for result in results:
-        temperature, city = result
-        timestamps = mysqlAPI.get_max_temperature_timestamps(city, temperature)
-        df = pd.concat(
-            [
-                df,
-                pd.DataFrame(
-                    [[city, temperature, timestamps]],
-                    columns=["city", "temperature", "timestamp"],
-                ),
-            ],
-            ignore_index=True,
-        )
-    fig = px.bar(df, x="city", y="temperature")
-    print(fig)
-    return fig
-"""
 
 print(dt.datetime.now())
 if __name__ == "__main__":

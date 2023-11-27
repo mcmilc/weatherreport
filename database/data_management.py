@@ -7,14 +7,11 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(
     "Activities",
     "projects",
     "southbayweather",
+    "database",
     "bubbly-mission-402701-357b024147cf.json",
 )
 
 client = bigquery.Client()
-
-
-def func():
-    pass
 
 
 sql_query = """

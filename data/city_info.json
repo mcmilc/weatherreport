@@ -33,5 +33,10 @@
     "latitude": 33.961018,
     "longitude": -118.35537,
     "timezone": "America%2FLos_Angeles"
+  },
+  "Gardena": {
+    "latitude": 33.893787,
+    "longitude": -118.307991,
+    "timezone": "America%2FLos_Angeles"
   }
 }

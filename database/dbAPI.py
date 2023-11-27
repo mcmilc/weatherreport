@@ -1,4 +1,8 @@
+"""First version of two APIs supporting MySQL and BigQuery. This is a first draft. Need to refactor using better OOP and / or context managers.
+"""
+import os
 import mysql.connector
+from google.cloud import bigquery
 from mysql.connector import errorcode
 from southbayweather.config.config import sbw_root
 
@@ -19,6 +23,13 @@ from southbayweather.database.queries import get_max_historical_temperature_for_
 from southbayweather.database.queries import get_max_historical_temperature_timestamps
 from southbayweather.database.queries import get_all_max_historical_temperatures
 from southbayweather.database.queries import get_current_temperature
+
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = pjoin(
+    sbw_root,
+    "database",
+    "bubbly-mission-402701-357b024147cf.json",
+)
 
 
 def MySQLAPIFactory():
@@ -64,6 +75,57 @@ def execute_query(cursor, query, params=None):
         print(
             f"MYSQL ERROR: {err.msg}, ERROR-CODE-FLAG: {get_errorcode_flag(err.errno)}"
         )
+
+
+class BigQueryAPI:
+    def __init__(
+        self,
+        client=bigquery.Client(project="bubbly-mission-402701"),
+    ):
+        self.client = client
+        self.jc = bigquery.QueryJobConfig(
+            default_dataset="bubbly-mission-402701.southbay_weather_db"
+        )
+
+    def _get_city_id(self, city: str) -> str:
+        job = self.client.query(get_city_id_query(city), job_config=self.jc)
+        for row in job.result():
+            city_id = row[0]
+        return city_id
+
+    def _has_city_current_temperature(self, city: str) -> bool:
+        city_id = self._get_city_id(city)
+        job = self.client.query(
+            has_city_current_temperature_query(city_id), job_config=self.jc
+        )
+        result = query_has_result(job)
+        return result
+
+    def populate_historical_temperature(
+        self, timestamps: list, temperature: list, city: int
+    ) -> None:
+        """Write historical temperature into database
+
+        Args:
+            temperature (dict)
+        """
+        city_id = self._get_city_id(city)
+        for s_time, temp in zip(timestamps, temperature):
+            if temp is not None:
+                uuid = generate_uuid(s_time=s_time, city_id=city_id)
+                params = {
+                    "historical_temperature_id": uuid,
+                    "city_id": city_id,
+                    "time_measured": s_time,
+                    "temperature": round_val(temp),
+                }
+                print("Query")
+                print(add_historical_temperature % params)
+                job = self.client.query(
+                    add_historical_temperature % params, job_config=self.jc
+                )
+                job.result()
+                print(f"added {params}")
 
 
 class MySQLAPI:

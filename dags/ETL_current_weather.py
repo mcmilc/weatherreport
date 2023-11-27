@@ -1,8 +1,5 @@
-import os
 import pendulum
 import datetime as dt
-
-from urllib import parse
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator

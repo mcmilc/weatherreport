@@ -9,13 +9,13 @@ current_table = read_json(access_info)["mysql"]["tables"]["current"]
 city_table = read_json(access_info)["mysql"]["tables"]["city"]
 
 add_historical_temperature = (
-    f"INSERT INTO {historical_table} (historical_temperature_id, city_id, time_measured, temperature)"
-    f"Values (%(historical_temperature_id)s, %(city_id)s, %(time_measured)s, %(temperature)s)"
+    f"INSERT INTO {historical_table} (historical_temperature_id, city_id, time_measured, temperature) "
+    f"VALUES (%(historical_temperature_id)s, %(city_id)s, TIMESTAMP('%(time_measured)s'), %(temperature)s)"
 )
 
 add_current_temperature = (
-    f"INSERT INTO {current_table} (city_id, time_measured, temperature)"
-    f"Values (%(city_id)s, %(time_measured)s, %(temperature)s)"
+    f"INSERT INTO {current_table} (city_id, time_measured, temperature) "
+    f"VALUES (%(city_id)s, %(time_measured)s, %(temperature)s)"
 )
 
 
