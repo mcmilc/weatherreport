@@ -9,10 +9,10 @@ from dash import Output
 from dash import Input
 from dash import dcc
 
-from southbayweather.database.queries import get_all_city_names
-from southbayweather.database.dbAPI import MySQLAPIFactory
+from weatherreport.database.queries import get_all_city_names
+from weatherreport.database.dbAPI import DBAPIFactory
 
-mysqlAPI = MySQLAPIFactory()
+mysqlAPI = DBAPIFactory()
 
 app = Dash(__name__)
 

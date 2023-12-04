@@ -6,7 +6,7 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(
     root_dir,
     "Activities",
     "projects",
-    "southbayweather",
+    "weatherreport",
     "database",
     "bubbly-mission-402701-357b024147cf.json",
 )

@@ -1,42 +1,72 @@
 {
   "Hawthorne": {
+    "city_id": 1,
+    "city_type_id": 2,
     "latitude": 33.919434,
     "longitude": -118.353996,
     "timezone": "America%2FLos_Angeles"
   },
   "Redondo Beach": {
+    "city_id": 2,
+    "city_type_id": 1,
     "latitude": 33.849182,
     "longitude": -118.388405,
     "timezone": "America%2FLos_Angeles"
   },
   "Hermosa Beach": {
+    "city_id": 5,
+    "city_type_id": 1,
     "latitude": 33.862141,
     "longitude": -118.400009,
     "timezone": "America%2FLos_Angeles"
   },
   "El Segundo": {
+    "city_id": 3,
+    "city_type_id": 1,
     "latitude": 33.919182,
     "longitude": -118.416466,
     "timezone": "America%2FLos_Angeles"
   },
   "Manhattan Beach": {
+    "city_id": 4,
+    "city_type_id": 1,
     "latitude": 33.881248,
     "longitude": -118.407211,
     "timezone": "America%2FLos_Angeles"
   },
   "Torrance": {
+    "city_id": 6,
+    "city_type_id": 1,
     "latitude": 33.840763,
     "longitude": -118.345413,
     "timezone": "America%2FLos_Angeles"
   },
   "Inglewood": {
+    "city_id": 7,
+    "city_type_id": 2,
     "latitude": 33.961018,
     "longitude": -118.35537,
     "timezone": "America%2FLos_Angeles"
   },
   "Gardena": {
+    "city_id": 8,
+    "city_type_id": 2,
     "latitude": 33.893787,
     "longitude": -118.307991,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Lawndale": {
+    "city_id": 9,
+    "city_type_id": 2,
+    "latitude": 33.888088,
+    "longitude": -118.353477,
+    "timezone": "America%2FLos_Angeles"
+  },
+  "Lomita": {
+    "city_id": 10,
+    "city_type_id": 2,
+    "latitude": 33.792239,
+    "longitude": -118.315072,
     "timezone": "America%2FLos_Angeles"
   }
 }

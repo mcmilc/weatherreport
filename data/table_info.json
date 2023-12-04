@@ -1,0 +1,177 @@
+{
+    "historical_temperature": {
+        "mysql": {
+            "historical_temperature_id": {
+                "type": "INT",
+                "primary": "PRIMARY KEY",
+                "null": "NOT NULL"
+            },
+            "city_id": {
+                "type": "INT",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "time_measured": {
+                "type": "DATETIME",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "temperature": {
+                "type": "INT",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        },
+        "bigquery": {
+            "historical_temperature_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "city_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "time_measured": {
+                "type": "TIMESTAMP",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "temperature": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        }
+    },
+    "city": {
+        "mysql": {
+            "city_id": {
+                "type": "int",
+                "primary": "PRIMARY KEY",
+                "null": "NOT NULL"
+            },
+            "name": {
+                "type": "varchar(100)",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "city_type_id": {
+                "type": "int",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "longitude": {
+                "type": "double",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "latitude": {
+                "type": "double",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        },
+        "bigquery": {
+            "city_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "name": {
+                "type": "STRING",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "city_type_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "longitude": {
+                "type": "FLOAT64",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "latitude": {
+                "type": "FLOAT64",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        }
+    },
+    "city_type": {
+        "mysql": {
+            "city_type_id": {
+                "type": "INT",
+                "primary": "PRIMARY KEY",
+                "null": "NOT NULL"
+            },
+            "name": {
+                "type": "varchar(50)",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        },
+        "bigquery": {
+            "city_type_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "name": {
+                "type": "STRING",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        }
+    },
+    "current_temperature": {
+        "mysql": {
+            "current_temperature_id": {
+                "type": "INT",
+                "primary": "PRIMARY KEY",
+                "null": "NOT NULL"
+            },
+            "city_id": {
+                "type": "INT",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "time_measured": {
+                "type": "DATETIME",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "temperature": {
+                "type": "INT",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        },
+        "bigquery": {
+            "current_temperature_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "city_id": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "time_measured": {
+                "type": "TIMESTAMP",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "temperature": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            }
+        },
+        "forecasted_temperature": {}
+    }
+}

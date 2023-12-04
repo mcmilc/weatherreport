@@ -1,10 +1,9 @@
 import sys
 import getopt
-from southbayweather.utilities.helpers import build_date
-from southbayweather.transforms.filters import filter_historical_temperature
-from southbayweather.weatherAPI.weatherClient import weatherClientFactory
-from southbayweather.database.dbAPI import MySQLAPIFactory
-from southbayweather.database.dbAPI import BigQueryAPI
+from weatherreport.utilities.helpers import build_date
+from weatherreport.transforms.filters import filter_historical_temperature
+from weatherreport.weatherAPI.weatherClient import weatherClientFactory
+from weatherreport.database.dbAPI import DBAPIFactory
 
 
 def parse_date_arg(input_date):
@@ -27,10 +26,9 @@ def main():
         elif opt == "-i":
             interval = arg
         elif opt == "-d":
-            if arg == "mysql":
-                dbAPI = MySQLAPIFactory()
-            elif arg == "bigquery":
-                dbAPI = BigQueryAPI()
+            db_type = arg
+
+    dbAPI = DBAPIFactory(db_type)
     # extract
     data = wc.get_historical_temperature(
         start_date=start_date, end_date=end_date, city=city, interval=interval

@@ -1,6 +1,6 @@
 import json
-from southbayweather.utilities.helpers import build_date
-from southbayweather.weatherAPI.weatherAPI import WeatherAPI
+from weatherreport.utilities.helpers import build_date
+from weatherreport.weatherAPI.weatherAPI import WeatherAPI
 
 
 def main():

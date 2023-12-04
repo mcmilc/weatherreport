@@ -1,50 +1,114 @@
 """First version of two APIs supporting MySQL and BigQuery. This is a first draft. Need to refactor using better OOP and / or context managers.
 """
-import os
 import mysql.connector
+import pandas as pd
 from google.cloud import bigquery
 from mysql.connector import errorcode
-from southbayweather.config.config import sbw_root
+
+# ACCESS
 
 # HELPERS
-from southbayweather.utilities.helpers import pjoin
-from southbayweather.utilities.helpers import read_json
-from southbayweather.utilities.helpers import generate_uuid
-from southbayweather.utilities.helpers import round_val
+from weatherreport.utilities.helpers import setup_bigquery_environment
+from weatherreport.utilities.helpers import get_connection_passwd
+from weatherreport.utilities.helpers import get_connection_database
+from weatherreport.utilities.helpers import generate_uuid
+from weatherreport.utilities.helpers import round_val
+from weatherreport.utilities.helpers import file_exists
+from weatherreport.utilities.helpers import get_city_id
+from weatherreport.utilities.helpers import get_city_info
+from weatherreport.utilities.helpers import get_table_info
+from weatherreport.utilities.helpers import get_city_type_info
 
 # QUERIES
-from southbayweather.database.queries import flush_table_query
-from southbayweather.database.queries import get_city_id_query
-from southbayweather.database.queries import add_historical_temperature
-from southbayweather.database.queries import add_current_temperature
-from southbayweather.database.queries import update_current_temperature
-from southbayweather.database.queries import has_city_current_temperature_query
-from southbayweather.database.queries import get_max_historical_temperature_for_city
-from southbayweather.database.queries import get_max_historical_temperature_timestamps
-from southbayweather.database.queries import get_all_max_historical_temperatures
-from southbayweather.database.queries import get_current_temperature
-
-
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = pjoin(
-    sbw_root,
-    "database",
-    "bubbly-mission-402701-357b024147cf.json",
+from weatherreport.database.queries import flush_table_query
+from weatherreport.database.queries import get_city_id_query
+from weatherreport.database.queries import add_historical_temperature_query
+from weatherreport.database.queries import add_current_temperature_query
+from weatherreport.database.queries import add_city_type_query
+from weatherreport.database.queries import add_city_query
+from weatherreport.database.queries import update_current_temperature_query
+from weatherreport.database.queries import has_city_current_temperature_query
+from weatherreport.database.queries import (
+    get_max_historical_temperature_for_city_query,
 )
+from weatherreport.database.queries import (
+    get_max_historical_temperature_timestamps_query,
+)
+from weatherreport.database.queries import get_all_max_historical_temperatures_query
+from weatherreport.database.queries import get_current_temperature_query
+from weatherreport.database.queries import create_table_query
+from weatherreport.database.queries import drop_table_query
+from weatherreport.database.queries import historical_table
 
 
-def MySQLAPIFactory():
-    passwd = read_json(pjoin(sbw_root, "data", "access.json"))["mysql"]["passwd"]
-    database = read_json(pjoin(sbw_root, "data", "access.json"))["mysql"]["db_name"]
-    cnx = mysql.connector.connect(
-        host="localhost", user="root", password=passwd, database=database
-    )
-    return MySQLAPI(cnx)
+def unwrap_sql_result(func):
+    def wrapper(self, query_string, params, commit=False):
+        wrapped_result = func(self, query_string, params, commit=False)
+        result = None
+        try:
+            result = wrapped_result[0][0]
+        except IndexError:
+            pass
+        return result
+
+    return wrapper
+
+
+def mysql_query(func):
+    def wrapper(self, query_string, params, commit=False):
+        cursor = self.client.cursor()
+        func(self, cursor, query_string=query_string, params=params, commit=commit)
+        results = []
+        try:
+            for r in cursor:
+                results.append(r)
+        except mysql.connector.errors.InterfaceError:
+            pass
+        cursor.close()
+        return results
+
+    return wrapper
+
+
+def DBAPIFactory(db_type="mysql"):
+    if db_type == "mysql":
+        passwd = get_connection_passwd(db_type=db_type)
+        database = get_connection_passwd(db_type=db_type)
+        return MySQLAPI(client=MySQLClient(db_type=db_type))
+    elif db_type == "cloud-sql":
+        passwd = get_connection_passwd(db_type=db_type)
+        database = get_connection_passwd(db_type=db_type)
+        cnx = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password=passwd,
+            database=database,
+            instance_connections_str="bubbly-mission-402701:us-central1:db-mysql-mcmil-01",
+            driver="pymysql",
+        )
+        return MySQLAPI(cnx)
+    elif db_type == "bigquery":
+        return BigQueryAPI(
+            BigQueryClient(
+                project_id="weather-report-406515", dataset="southbay_weather_db"
+            )
+        )
+    elif db_type == "csv":
+        return CSVAPI()
+
+
+def convert_timestamp(timestamp):
+    return str.replace(timestamp, "T", " ") + ":00"
 
 
 def get_errorcode_flag(code):
     flag = [x for x in dir(errorcode) if getattr(errorcode, x) == code]
     if len(flag) == 1:
         return flag[0]
+
+
+def execute_query(cursor, query, params):
+    pass
 
 
 def query_has_result(cursor) -> bool:
@@ -68,123 +132,150 @@ def extract_city_id(cursor, city) -> str:
     return str(city_id[0])
 
 
-def execute_query(cursor, query, params=None):
-    try:
-        cursor.execute(query, params=params)
-    except mysql.connector.Error as err:
-        print(
-            f"MYSQL ERROR: {err.msg}, ERROR-CODE-FLAG: {get_errorcode_flag(err.errno)}"
+class DBClient:
+    def __init__(self):
+        pass
+
+    def execute_query(self, *args, **kwargs):
+        pass
+
+
+class DBAPI:
+    def __init__(self, client: DBClient, *args, **kwargs):
+        self.client = client
+
+    def get_city_id(self, city: str) -> str:
+        return get_city_id(city)
+
+    def execute_query(self, query_string: str, params: str = None, **kwargs):
+        return self.client.execute_query(query_string, params, **kwargs)
+
+
+class BigQueryClient(DBClient):
+    def __init__(self, project_id: str, dataset: str):
+        setup_bigquery_environment("weather-report-406515-20573f2148d1.json")
+        self.project_id = project_id
+        self.dataset = dataset
+        self.client = bigquery.Client(project=project_id)
+        self.default_job_config = bigquery.QueryJobConfig(
+            default_dataset=project_id + "." + dataset
         )
 
+    def execute_query(self, query_string: str, params: dict = None):
+        if params is not None:
+            query_string = query_string % params
+        # print(query_string)
+        job = self.client.query(query=query_string, job_config=self.default_job_config)
+        results = []
+        for out in job.result():
+            results.append(out)
+        return results
 
-class BigQueryAPI:
+
+class MySQLClient(DBClient):
+    def __init__(self, db_type, host="localhost", user="root"):
+        passwd = get_connection_passwd(db_type)
+        database = get_connection_database(db_type)
+        self.client = mysql.connector.connect(
+            host=host, user=user, password=passwd, database=database
+        )
+
+    @mysql_query
+    def execute_query(
+        self, cursor, query_string: str, params: str = None, commit: bool = False
+    ):
+        try:
+            cursor.execute(query_string, params=params)
+        except mysql.connector.Error as err:
+            print(
+                f"MYSQL ERROR: {err.msg}, ERROR-CODE-FLAG: {get_errorcode_flag(err.errno)}"
+            )
+        if commit:
+            self.client.commit()
+
+
+class CSVAPI:
+    def populate_historical_temperature(
+        self,
+        timestamps: list,
+        temperatures: list,
+        city: str,
+        filename: str,
+    ):
+        table_info = get_table_info()
+        city_id = get_city_id(city)
+        data = []
+        columns = table_info[historical_table]["bigquery"].keys()
+        for s_time, temperature in zip(timestamps, temperatures):
+            if temperature is not None:
+                uuid = generate_uuid(s_time=s_time, city_id=city_id)
+                time_measured = convert_timestamp(s_time)
+                temperature = round_val(temperature)
+                data.append((uuid, city_id, time_measured, temperature))
+        df = pd.DataFrame(columns=columns, data=data)
+        if file_exists(filename):
+            _df = pd.read_csv(filename)
+            df = pd.concat([_df, df])
+        df.to_csv(filename, columns=columns, index=False)
+
+
+class BigQueryAPI(DBAPI):
     def __init__(
         self,
-        client=bigquery.Client(project="bubbly-mission-402701"),
+        client: BigQueryClient,
     ):
         self.client = client
-        self.jc = bigquery.QueryJobConfig(
-            default_dataset="bubbly-mission-402701.southbay_weather_db"
-        )
 
-    def _get_city_id(self, city: str) -> str:
-        job = self.client.query(get_city_id_query(city), job_config=self.jc)
-        for row in job.result():
-            city_id = row[0]
-        return city_id
+    def _extend_table_name(self, table_name):
+        return f"`{self.client.project_id}.{self.client.dataset}.{table_name}`"
 
-    def _has_city_current_temperature(self, city: str) -> bool:
-        city_id = self._get_city_id(city)
-        job = self.client.query(
-            has_city_current_temperature_query(city_id), job_config=self.jc
+    def drop_table(self, table_name):
+        table_name = self._extend_table_name(table_name)
+        self.execute_query(query_string=drop_table_query(table_name), params=None)
+
+    def create_table(self, table_name):
+        query = create_table_query(table_name, "bigquery")
+        self.execute_query(query_string=query)
+
+    def city_has_current_temperature(self, city: str) -> bool:
+        city_id = self.get_city_id(city)
+        return self.execute_query(
+            query_string=has_city_current_temperature_query(city_id)
         )
-        result = query_has_result(job)
-        return result
 
     def populate_historical_temperature(
-        self, timestamps: list, temperature: list, city: int
+        self, timestamps: list, temperatures: list, city: str
     ) -> None:
-        """Write historical temperature into database
+        """Write historical temperature into database. Very slow.
 
         Args:
-            temperature (dict)
+            timestamps (list datetime.datetime)
+            temperatures (list float)
+            city (str)
         """
-        city_id = self._get_city_id(city)
-        for s_time, temp in zip(timestamps, temperature):
-            if temp is not None:
+        city_id = self.get_city_id(city)
+        for s_time, temperature in zip(timestamps, temperatures):
+            if temperature is not None:
                 uuid = generate_uuid(s_time=s_time, city_id=city_id)
+                time_measured = convert_timestamp(s_time)
+                temperature = round_val(temperature)
                 params = {
                     "historical_temperature_id": uuid,
                     "city_id": city_id,
-                    "time_measured": s_time,
-                    "temperature": round_val(temp),
+                    "time_measured": time_measured,
+                    "temperature": temperature,
                 }
-                print("Query")
-                print(add_historical_temperature % params)
-                job = self.client.query(
-                    add_historical_temperature % params, job_config=self.jc
+                self.execute_query(
+                    query_string=add_historical_temperature_query, params=params
                 )
-                job.result()
-                print(f"added {params}")
-
-
-class MySQLAPI:
-    def __init__(self, connector):
-        self.connector = connector
-
-    def _get_city_id(self, city: str) -> str:
-        cursor = self.connector.cursor()
-        query = get_city_id_query(city)
-        execute_query(cursor=cursor, query=query)
-        city_id = extract_city_id(cursor, city)
-        cursor.close()
-        return city_id
-
-    def _has_city_current_temperature(self, city: str) -> bool:
-        cursor = self.connector.cursor()
-        city_id = self._get_city_id(city)
-        query = has_city_current_temperature_query(city_id)
-        execute_query(cursor=cursor, query=query)
-        result = query_has_result(cursor)
-        cursor.close()
-        return result
-
-    def populate_historical_temperature(
-        self, timestamps: list, temperature: list, city: int
-    ) -> None:
-        """Write historical temperature into database
-
-        Args:
-            temperature (dict)
-        """
-        cursor = self.connector.cursor()
-        city_id = self._get_city_id(city)
-        for s_time, temp in zip(timestamps, temperature):
-            if temp is not None:
-                uuid = generate_uuid(s_time=s_time, city_id=city_id)
-                params = {
-                    "historical_temperature_id": uuid,
-                    "city_id": city_id,
-                    "time_measured": s_time,
-                    "temperature": round_val(temp),
-                }
-                execute_query(
-                    cursor=cursor, query=add_historical_temperature, params=params
-                )
-        # commit required for DELETE
-        self.connector.commit()
-        cursor.close()
 
     def populate_current_temperature(self, timestamp: str, temperature: int, city: str):
-        cursor = self.connector.cursor()
-        city_id = self._get_city_id(city)
-        result = self._has_city_current_temperature(city)
-        if result:
-            execute_query(
-                cursor=cursor,
-                query=update_current_temperature(
+        city_id = self.get_city_id(city)
+        if self.city_has_current_temperature(city):
+            self.execute_query(
+                query_string=update_current_temperature_query(
                     city_id, round_val(temperature), timestamp
-                ),
+                )
             )
         else:
             params = {
@@ -192,60 +283,150 @@ class MySQLAPI:
                 "time_measured": timestamp,
                 "temperature": round_val(temperature),
             }
-            execute_query(cursor=cursor, query=add_current_temperature, params=params)
-        self.connector.commit()
-        cursor.close()
+            self.execute_query(
+                query_string=add_current_temperature_query, params=params
+            )
+
+    def populate_city_type(self):
+        city_type_info = get_city_type_info()
+        for city_type in city_type_info.keys():
+            params = {"city_type_id": city_type_info[city_type], "name": city_type}
+            self.execute_query(query_string=add_city_type_query, params=params)
+
+    def populate_city(self):
+        city_info = get_city_info()
+        for city in city_info.keys():
+            params = {
+                "city_id": city_info[city]["city_id"],
+                "name": city,
+                "city_type_id": city_info[city]["city_type_id"],
+                "longitude": city_info[city]["longitude"],
+                "latitude": city_info[city]["latitude"],
+            }
+            self.execute_query(query_string=add_city_query, params=params)
+
+    def upload_csv_data(self, table_name, filename):
+        table_info = get_table_info()
+        column_data = table_info[table_name]["bigquery"]
+        schema = []
+        for col in column_data.keys():
+            if column_data[col]["null"] == "NOT NULL":
+                mode = "REQUIRED"
+            else:
+                mode = "NULLABLE"
+            schema.append(
+                bigquery.SchemaField(
+                    name=col,
+                    field_type=column_data[col]["type"],
+                    mode=mode,
+                )
+            )
+        jc = bigquery.job.LoadJobConfig(
+            schema=schema,
+            skip_leading_rows=1,
+            source_format=bigquery.SourceFormat.CSV,
+        )
+        self.client.client.load_table_from_file(
+            open(filename, "rb"),
+            destination=self.client.project_id
+            + "."
+            + self.client.dataset
+            + "."
+            + table_name,
+            job_config=jc,
+        )
+
+
+class MySQLAPI(DBAPI):
+    def __init__(self, client):
+        self.client = client
+
+    def drop_table(self, table_name):
+        self.execute_query(query_string=drop_table_query(table_name), commit=True)
+
+    def create_table(self, table_name):
+        self.execute_query(
+            query_string=create_table_query(table_name, "mysql"), commit=True
+        )
+
+    def get_city_id(self, city: str) -> str:
+        return self.execute_query(query_string=get_city_id_query(city))[0][0]
+
+    def city_has_current_temperature(self, city: str) -> bool:
+        city_id = self.get_city_id(city)
+        return self.execute_query(
+            query_string=has_city_current_temperature_query(city_id)
+        )[0][0]
+
+    def populate_historical_temperature(
+        self, timestamps: list, temperature: list, city: str
+    ) -> None:
+        """Write historical temperature into database
+
+        Args:
+            timestamps (list datetime.datetime)
+            temperature (dict)
+            city (str)
+        """
+        city_id = self.get_city_id(city)
+        for s_time, temp in zip(timestamps, temperature):
+            if temp is not None:
+                uuid = generate_uuid(s_time=s_time, city_id=city_id)
+                params = {
+                    "historical_temperature_id": uuid,
+                    "city_id": city_id,
+                    "time_measured": str.replace(s_time, "T", " ") + ":00",
+                    "temperature": round_val(temp),
+                }
+                self.execute_query(
+                    query_string=add_historical_temperature_query,
+                    params=params,
+                    commit=True,
+                )
+
+    def populate_current_temperature(self, timestamp: str, temperature: int, city: str):
+        city_id = self.get_city_id(city)
+        if self.city_has_current_temperature(city):
+            self.execute_query(
+                query_string=update_current_temperature_query(
+                    city_id, round_val(temperature), timestamp
+                ),
+                params=None,
+                commit=True,
+            )
+        else:
+            params = {
+                "city_id": city_id,
+                "time_measured": timestamp,
+                "temperature": round_val(temperature),
+            }
+            self.execute_query(
+                query_string=add_current_temperature_query, params=params, commit=True
+            )
 
     def get_max_temperature(self, city: str):
-        cursor = self.connector.cursor()
-        query = get_max_historical_temperature_for_city(city)
-        execute_query(cursor=cursor, query=query)
-        max_temperature = None
-        for result in cursor:
-            max_temperature = result[0]
-        cursor.close()
-        return max_temperature
+        return self.execute_query(
+            query_string=get_max_historical_temperature_for_city_query(city)
+        )[0][0]
 
     def get_max_temperature_timestamps(self, city, temperature):
-        cursor = self.connector.cursor()
-        query = get_max_historical_temperature_timestamps(
+        query = get_max_historical_temperature_timestamps_query(
             city=city, temperature=temperature
         )
-        execute_query(cursor=cursor, query=query)
-        timestamps = []
-        for result in cursor:
-            timestamps.append(result[0])
-        cursor.close()
-        return timestamps
+        return self.execute_query(query_string=query)[0]
 
     def get_all_max_temperatures(self):
-        cursor = self.connector.cursor()
-        query = get_all_max_historical_temperatures()
-        execute_query(cursor=cursor, query=query)
-        output = []
-        for result in cursor:
-            output.append(result)
-        cursor.close()
-        return output
+        query = get_all_max_historical_temperatures_query()
+        return self.execute_query(query_string=query)
 
     def get_current_temperature(self, city: str):
-        if self._has_city_current_temperature(city):
-            cursor = self.connector.cursor()
-            query = get_current_temperature(city)
-            execute_query(cursor=cursor, query=query)
-            temperature = None
-            for result in cursor:
-                temperature, timestamp = result
-            cursor.close()
-            return temperature, timestamp
+        if self.city_has_current_temperature(city):
+            query = get_current_temperature_query(city)
+            return execute_query(query_string=query)[0][0]
 
     def flush_table(self, table_name):
-        cursor = self.connector.cursor()
         query = flush_table_query(table_name)
-        execute_query(cursor=cursor, query=query)
-        # commit required for DELETE
-        self.connector.commit()
-        cursor.close()
+        self.execute_query(query_string=query, commit=True)
 
 
 if __name__ == "__main__":

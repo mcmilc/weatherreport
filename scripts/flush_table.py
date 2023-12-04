@@ -1,15 +1,18 @@
 import sys
 import getopt
-from southbayweather.database.dbAPI import MySQLAPIFactory
+from weatherreport.database.dbAPI import DBAPIFactory
 
 
 def main():
     input_args = sys.argv[1:]
-    optlist, args = getopt.getopt(input_args, "t:")
+    optlist, args = getopt.getopt(input_args, "t:d:")
     for opt, arg in optlist:
         if opt == "-t":
             table_name = arg
-    mysqlAPI = MySQLAPIFactory()
+        elif opt == "-d":
+            db_type = arg
+
+    mysqlAPI = DBAPIFactory(db_type)
     mysqlAPI.flush_table(table_name)
 
 

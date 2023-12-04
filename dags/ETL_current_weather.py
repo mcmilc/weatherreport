@@ -4,10 +4,10 @@ import datetime as dt
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from southbayweather.database.dbAPI import MySQLAPIFactory
-from southbayweather.transforms.filters import filter_current_temperature
-from southbayweather.database.queries import get_all_city_names
-from southbayweather.weatherAPI.weatherClient import weatherClientFactory
+from weatherreport.database.dbAPI import DBAPIFactory
+from weatherreport.transforms.filters import filter_current_temperature
+from weatherreport.database.queries import get_all_city_names
+from weatherreport.weatherAPI.weatherClient import weatherClientFactory
 
 default_args = {
     "owner": "Matthias Milczynski",
@@ -29,7 +29,7 @@ dag = DAG(
 
 def update_current():
     wc = weatherClientFactory()
-    mysqlAPI = MySQLAPIFactory()
+    mysqlAPI = DBAPIFactory()
     for city in get_all_city_names():
         data = wc.get_current_temperature(city=city)
         # transform

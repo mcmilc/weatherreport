@@ -1,13 +1,12 @@
 import json
-from southbayweather.config.config import sbw_root
 
 # HELPERS
-from southbayweather.utilities.helpers import pjoin
-from southbayweather.utilities.helpers import read_json
-from southbayweather.utilities.helpers import build_date
+from weatherreport.utilities.helpers import build_date
+from weatherreport.utilities.helpers import get_api_info
+from weatherreport.utilities.helpers import get_city_info
 
 # Weather API
-from southbayweather.weatherAPI.weatherAPI import WeatherAPI
+from weatherreport.weatherAPI.weatherAPI import WeatherAPI
 
 
 class WeatherClient:
@@ -129,8 +128,8 @@ def weatherClientFactory():
     Returns:
         WeatherClient
     """
-    api_info = read_json(filename=pjoin(sbw_root, "data", "api_info.json"))
-    city_info = read_json(filename=pjoin(sbw_root, "data", "city_info.json"))
+    api_info = get_api_info()
+    city_info = get_city_info()
     return WeatherClient(api=WeatherAPI(), api_info=api_info, city_info=city_info)
 
 
