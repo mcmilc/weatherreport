@@ -129,11 +129,6 @@
     },
     "current_temperature": {
         "mysql": {
-            "current_temperature_id": {
-                "type": "INT",
-                "primary": "PRIMARY KEY",
-                "null": "NOT NULL"
-            },
             "city_id": {
                 "type": "INT",
                 "primary": "",
@@ -151,11 +146,6 @@
             }
         },
         "bigquery": {
-            "current_temperature_id": {
-                "type": "INTEGER",
-                "primary": "",
-                "null": "NOT NULL"
-            },
             "city_id": {
                 "type": "INTEGER",
                 "primary": "",

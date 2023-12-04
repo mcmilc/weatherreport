@@ -1,11 +1,10 @@
 import sys
 import getopt
 
-from weatherreport.database.queries import current_table
-
 from weatherreport.database.dbAPI import DBAPIFactory
 from weatherreport.transforms.filters import filter_current_temperature
 from weatherreport.weatherAPI.weatherClient import weatherClientFactory
+from weatherreport.database.queries import get_current_table
 
 
 def parse_date_arg(input_date):
@@ -31,8 +30,8 @@ def main():
     dbAPI = DBAPIFactory(db_type)
     # load
     if re_create == "1":
-        dbAPI.drop_table(current_table)
-        dbAPI.create_table(current_table)
+        dbAPI.drop_table(get_current_table(db_type))
+        dbAPI.create_table(get_current_table(db_type))
     dbAPI.populate_current_temperature(
         timestamp=timestamp, temperature=temperature, city=city
     )

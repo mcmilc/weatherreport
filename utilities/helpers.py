@@ -18,7 +18,7 @@ def read_json(filename: str) -> dict:
     return json.load(open(filename))
 
 
-def round_val(value: float) -> np.int32:
+def round_val(value: float) -> int:
     return int(np.round(value))
 
 
@@ -41,6 +41,10 @@ def get_connection_passwd(db_type):
 
 def get_connection_database(db_type):
     return read_json(pjoin(sbw_root, "data", "access.json"))[db_type]["db_name"]
+
+
+def get_access_info(db_type):
+    return read_json(pjoin(sbw_root, "data", "access.json"))[db_type]
 
 
 def get_api_info():

@@ -18,6 +18,7 @@ from weatherreport.utilities.helpers import get_city_id
 from weatherreport.utilities.helpers import get_city_info
 from weatherreport.utilities.helpers import get_table_info
 from weatherreport.utilities.helpers import get_city_type_info
+from weatherreport.utilities.helpers import get_access_info
 
 # QUERIES
 from weatherreport.database.queries import flush_table_query
@@ -27,7 +28,7 @@ from weatherreport.database.queries import add_current_temperature_query
 from weatherreport.database.queries import add_city_type_query
 from weatherreport.database.queries import add_city_query
 from weatherreport.database.queries import update_current_temperature_query
-from weatherreport.database.queries import has_city_current_temperature_query
+from weatherreport.database.queries import city_has_current_temperature_query
 from weatherreport.database.queries import (
     get_max_historical_temperature_for_city_query,
 )
@@ -38,7 +39,7 @@ from weatherreport.database.queries import get_all_max_historical_temperatures_q
 from weatherreport.database.queries import get_current_temperature_query
 from weatherreport.database.queries import create_table_query
 from weatherreport.database.queries import drop_table_query
-from weatherreport.database.queries import historical_table
+from weatherreport.database.queries import get_historical_table
 
 
 def unwrap_sql_result(func):
@@ -88,9 +89,10 @@ def DBAPIFactory(db_type="mysql"):
         )
         return MySQLAPI(cnx)
     elif db_type == "bigquery":
+        access_info = get_access_info(db_type)
         return BigQueryAPI(
             BigQueryClient(
-                project_id="weather-report-406515", dataset="southbay_weather_db"
+                project_id=access_info["project_id"], dataset=access_info["db_name"]
             )
         )
     elif db_type == "csv":
@@ -205,7 +207,7 @@ class CSVAPI:
         table_info = get_table_info()
         city_id = get_city_id(city)
         data = []
-        columns = table_info[historical_table]["bigquery"].keys()
+        columns = table_info[get_historical_table]["bigquery"].keys()
         for s_time, temperature in zip(timestamps, temperatures):
             if temperature is not None:
                 uuid = generate_uuid(s_time=s_time, city_id=city_id)
@@ -231,16 +233,20 @@ class BigQueryAPI(DBAPI):
 
     def drop_table(self, table_name):
         table_name = self._extend_table_name(table_name)
-        self.execute_query(query_string=drop_table_query(table_name), params=None)
+        self.execute_query(
+            query_string=drop_table_query(table_name=table_name), params=None
+        )
 
     def create_table(self, table_name):
-        query = create_table_query(table_name, "bigquery")
+        query = create_table_query(table_name=table_name, db_type="bigquery")
         self.execute_query(query_string=query)
 
     def city_has_current_temperature(self, city: str) -> bool:
         city_id = self.get_city_id(city)
         return self.execute_query(
-            query_string=has_city_current_temperature_query(city_id)
+            query_string=city_has_current_temperature_query(
+                city_id=city_id, db_type="bigquery"
+            )
         )
 
     def populate_historical_temperature(
@@ -266,32 +272,42 @@ class BigQueryAPI(DBAPI):
                     "temperature": temperature,
                 }
                 self.execute_query(
-                    query_string=add_historical_temperature_query, params=params
+                    query_string=add_historical_temperature_query("bigquery"),
+                    params=params,
                 )
 
-    def populate_current_temperature(self, timestamp: str, temperature: int, city: str):
+    def populate_current_temperature(
+        self, timestamp: str, temperature: float, city: str
+    ):
         city_id = self.get_city_id(city)
+        time_measured = convert_timestamp(timestamp)
         if self.city_has_current_temperature(city):
             self.execute_query(
                 query_string=update_current_temperature_query(
-                    city_id, round_val(temperature), timestamp
+                    city_id=city_id,
+                    temperature=round_val(temperature),
+                    timestamp=time_measured,
+                    db_type="bigquery",
                 )
             )
         else:
             params = {
                 "city_id": city_id,
-                "time_measured": timestamp,
+                "time_measured": time_measured,
                 "temperature": round_val(temperature),
             }
             self.execute_query(
-                query_string=add_current_temperature_query, params=params
+                query_string=add_current_temperature_query(db_type="bigquery"),
+                params=params,
             )
 
     def populate_city_type(self):
         city_type_info = get_city_type_info()
         for city_type in city_type_info.keys():
             params = {"city_type_id": city_type_info[city_type], "name": city_type}
-            self.execute_query(query_string=add_city_type_query, params=params)
+            self.execute_query(
+                query_string=add_city_type_query(db_type="bigquery"), params=params
+            )
 
     def populate_city(self):
         city_info = get_city_info()
@@ -303,7 +319,9 @@ class BigQueryAPI(DBAPI):
                 "longitude": city_info[city]["longitude"],
                 "latitude": city_info[city]["latitude"],
             }
-            self.execute_query(query_string=add_city_query, params=params)
+            self.execute_query(
+                query_string=add_city_query(db_type="bigquery"), params=params
+            )
 
     def upload_csv_data(self, table_name, filename):
         table_info = get_table_info()
@@ -346,16 +364,21 @@ class MySQLAPI(DBAPI):
 
     def create_table(self, table_name):
         self.execute_query(
-            query_string=create_table_query(table_name, "mysql"), commit=True
+            query_string=create_table_query(table_name=table_name, db_type="mysql"),
+            commit=True,
         )
 
     def get_city_id(self, city: str) -> str:
-        return self.execute_query(query_string=get_city_id_query(city))[0][0]
+        return self.execute_query(
+            query_string=get_city_id_query(city=city, db_type="mysql")
+        )[0][0]
 
     def city_has_current_temperature(self, city: str) -> bool:
         city_id = self.get_city_id(city)
         return self.execute_query(
-            query_string=has_city_current_temperature_query(city_id)
+            query_string=city_has_current_temperature_query(
+                city_id=city_id, db_type="mysql"
+            )
         )[0][0]
 
     def populate_historical_temperature(
@@ -379,7 +402,7 @@ class MySQLAPI(DBAPI):
                     "temperature": round_val(temp),
                 }
                 self.execute_query(
-                    query_string=add_historical_temperature_query,
+                    query_string=add_historical_temperature_query("mysql"),
                     params=params,
                     commit=True,
                 )
@@ -389,7 +412,10 @@ class MySQLAPI(DBAPI):
         if self.city_has_current_temperature(city):
             self.execute_query(
                 query_string=update_current_temperature_query(
-                    city_id, round_val(temperature), timestamp
+                    city_id=city_id,
+                    temperature=round_val(temperature),
+                    timestamp=timestamp,
+                    db_type="mysql",
                 ),
                 params=None,
                 commit=True,
@@ -401,31 +427,35 @@ class MySQLAPI(DBAPI):
                 "temperature": round_val(temperature),
             }
             self.execute_query(
-                query_string=add_current_temperature_query, params=params, commit=True
+                query_string=add_current_temperature_query("mysql"),
+                params=params,
+                commit=True,
             )
 
     def get_max_temperature(self, city: str):
         return self.execute_query(
-            query_string=get_max_historical_temperature_for_city_query(city)
+            query_string=get_max_historical_temperature_for_city_query(
+                city=city, db_type="mysql"
+            )
         )[0][0]
 
     def get_max_temperature_timestamps(self, city, temperature):
         query = get_max_historical_temperature_timestamps_query(
-            city=city, temperature=temperature
+            city=city, temperature=temperature, db_type="mysql"
         )
         return self.execute_query(query_string=query)[0]
 
     def get_all_max_temperatures(self):
-        query = get_all_max_historical_temperatures_query()
+        query = get_all_max_historical_temperatures_query(db_type="mysql")
         return self.execute_query(query_string=query)
 
     def get_current_temperature(self, city: str):
         if self.city_has_current_temperature(city):
-            query = get_current_temperature_query(city)
+            query = get_current_temperature_query(city=city, db_type="mysql")
             return execute_query(query_string=query)[0][0]
 
     def flush_table(self, table_name):
-        query = flush_table_query(table_name)
+        query = flush_table_query(table_name=table_name)
         self.execute_query(query_string=query, commit=True)
 
 
