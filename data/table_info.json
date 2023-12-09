@@ -20,6 +20,11 @@
                 "type": "INT",
                 "primary": "",
                 "null": "NOT NULL"
+            },
+            "timestamp": {
+                "type": "INT",
+                "primary": "",
+                "null": "NOT NULL"
             }
         },
         "bigquery": {
@@ -39,6 +44,11 @@
                 "null": "NOT NULL"
             },
             "temperature": {
+                "type": "INTEGER",
+                "primary": "",
+                "null": "NOT NULL"
+            },
+            "timestamp": {
                 "type": "INTEGER",
                 "primary": "",
                 "null": "NOT NULL"

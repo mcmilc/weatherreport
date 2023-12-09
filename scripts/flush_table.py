@@ -12,8 +12,8 @@ def main():
         elif opt == "-d":
             db_type = arg
 
-    mysqlAPI = DBAPIFactory(db_type)
-    mysqlAPI.flush_table(table_name)
+    dbAPI = DBAPIFactory(db_type)
+    dbAPI.flush_table(table_name)
 
 
 if __name__ == "__main__":

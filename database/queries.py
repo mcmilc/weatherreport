@@ -158,3 +158,10 @@ def create_table_query(table_name, db_type):
 
 def drop_table_query(table_name):
     return f"DROP TABLE IF EXISTS {table_name}"
+
+
+def get_max_entry(entry: str, table_name: str, city_id: int = None) -> str:
+    if city_id is None:
+        return f"SELECT MAX({entry}) from {table_name}"
+    else:
+        return f"SELECT MAX({entry}) from {table_name} WHERE city_id = {city_id}"

@@ -40,6 +40,7 @@ from weatherreport.database.queries import get_current_temperature_query
 from weatherreport.database.queries import create_table_query
 from weatherreport.database.queries import drop_table_query
 from weatherreport.database.queries import get_historical_table
+from weatherreport.database.queries import get_max_entry
 
 
 def unwrap_sql_result(func):
@@ -197,23 +198,25 @@ class MySQLClient(DBClient):
 
 
 class CSVAPI:
-    def populate_historical_temperature(
+    def create_historical_temperature_file(
         self,
         timestamps: list,
         temperatures: list,
         city: str,
         filename: str,
+        start_uuid: int = 1,
     ):
         table_info = get_table_info()
         city_id = get_city_id(city)
         data = []
         columns = table_info[get_historical_table]["bigquery"].keys()
+        uuid = start_uuid
         for s_time, temperature in zip(timestamps, temperatures):
             if temperature is not None:
-                uuid = generate_uuid(s_time=s_time, city_id=city_id)
                 time_measured = convert_timestamp(s_time)
                 temperature = round_val(temperature)
                 data.append((uuid, city_id, time_measured, temperature))
+                uuid += 1
         df = pd.DataFrame(columns=columns, data=data)
         if file_exists(filename):
             _df = pd.read_csv(filename)
@@ -353,6 +356,17 @@ class BigQueryAPI(DBAPI):
             + table_name,
             job_config=jc,
         )
+
+    def get_latest_historical_temperature_timestamp(self, city: str):
+        city_id = self.get_city_id(city)
+        result = self.execute_query(
+            get_max_entry(
+                entry="time_measured",
+                table_name=get_historical_table("bigquery"),
+                city_id=city_id,
+            )
+        )
+        return result
 
 
 class MySQLAPI(DBAPI):

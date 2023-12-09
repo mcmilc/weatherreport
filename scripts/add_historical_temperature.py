@@ -36,7 +36,7 @@ def main():
     # transform
     timestamps, temperature = filter_historical_temperature(data, interval)
     # load
-    dbAPI.populate_historical_temperature(
+    dbAPI.create_historical_temperature_file(
         timestamps=timestamps, temperature=temperature, city=city
     )
 
