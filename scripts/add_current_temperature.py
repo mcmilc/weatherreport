@@ -2,7 +2,7 @@ import sys
 import getopt
 
 from weatherreport.database.dbAPI import DBAPIFactory
-from weatherreport.transforms.filters import select_current_temperature
+from weatherreport.transforms.filters import filter_current_temperature
 from weatherreport.weatherAPI.weatherClient import weatherClientFactory
 from weatherreport.database.queries import get_current_table
 
@@ -26,7 +26,7 @@ def main():
     # extract
     data = wc.get_current_temperature(city=city)
     # transform
-    timestamp, temperature = select_current_temperature(data)
+    timestamp, temperature = filter_current_temperature(data)
     dbAPI = DBAPIFactory(db_type)
     # load
     if re_create == "1":
