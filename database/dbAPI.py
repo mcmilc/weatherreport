@@ -368,6 +368,21 @@ class BigQueryAPI(DBAPI):
         )
         return result
 
+    def get_all_max_temperatures(self):
+        query = get_all_max_historical_temperatures_query(db_type="mysql")
+        return self.execute_query(query_string=query)
+
+    def get_current_temperature(self, city: str):
+        if self.city_has_current_temperature(city):
+            query = get_current_temperature_query(city=city, db_type="mysql")
+            return self.execute_query(query_string=query)[0][0]
+
+    def get_max_temperature_timestamps(self, city, temperature):
+        query = get_max_historical_temperature_timestamps_query(
+            city=city, temperature=temperature, db_type="mysql"
+        )
+        return self.execute_query(query_string=query)[0]
+
 
 class MySQLAPI(DBAPI):
     def __init__(self, client):
@@ -466,7 +481,7 @@ class MySQLAPI(DBAPI):
     def get_current_temperature(self, city: str):
         if self.city_has_current_temperature(city):
             query = get_current_temperature_query(city=city, db_type="mysql")
-            return execute_query(query_string=query)[0][0]
+            return self.execute_query(query_string=query)[0][0]
 
     def flush_table(self, table_name):
         query = flush_table_query(table_name=table_name)

@@ -12,7 +12,7 @@ from dash import dcc
 from weatherreport.database.queries import get_all_city_names
 from weatherreport.database.dbAPI import DBAPIFactory
 
-mysqlAPI = DBAPIFactory()
+dblAPI = DBAPIFactory(db_type="bigquery")
 
 app = Dash(__name__)
 
@@ -42,7 +42,10 @@ def update_current_temperature(n):
     print("update")
     df_current = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     for city in get_all_city_names():
-        temperature, timestamp = mysqlAPI.get_current_temperature(city)
+        try:
+            temperature, timestamp = dblAPI.get_current_temperature(city)
+        except TypeError as err:
+            pass
         df_current = pd.concat(
             [
                 df_current,
@@ -55,10 +58,10 @@ def update_current_temperature(n):
         )
 
     df_max = pd.DataFrame(columns=["city", "temperature", "timestamp"])
-    results = mysqlAPI.get_all_max_temperatures()
+    results = dblAPI.get_all_max_temperatures()
     for result in results:
         temperature, city = result
-        timestamps = mysqlAPI.get_max_temperature_timestamps(city, temperature)
+        timestamps = dblAPI.get_max_temperature_timestamps(city, temperature)
         df_max = pd.concat(
             [
                 df_max,
