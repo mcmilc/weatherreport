@@ -16,6 +16,7 @@ dblAPI = DBAPIFactory(db_type="bigquery")
 
 app = Dash(__name__)
 
+server = app.server
 # App layout
 app.layout = html.Div(
     [
@@ -80,4 +81,4 @@ def update_current_temperature(n):
 
 print(dt.datetime.now())
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port="8051")
+    app.run_server(host="0.0.0.0", port="8050")
