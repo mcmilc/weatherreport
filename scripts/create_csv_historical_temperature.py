@@ -1,7 +1,7 @@
 import sys
 import getopt
 from weatherreport.utilities.helpers import build_date
-from weatherreport.transforms.filters import filter_historical_temperature
+from weatherreport.transforms.selectors import select_historical_temperature
 from weatherreport.weatherAPI.weatherClient import weatherClientFactory
 from weatherreport.database.dbAPI import CSVAPI
 
@@ -34,7 +34,7 @@ def main():
         start_date=start_date, end_date=end_date, city=city, interval=interval
     )
     # transform
-    timestamps, temperature = filter_historical_temperature(data, interval)
+    timestamps, temperature = select_historical_temperature(data, interval)
     # load
     dbAPI.create_historical_temperature_file(
         timestamps=timestamps, temperatures=temperature, city=city, filename=filename

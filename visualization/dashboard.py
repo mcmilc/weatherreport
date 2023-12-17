@@ -44,19 +44,19 @@ def update_current_temperature(n):
     for city in get_all_city_names():
         try:
             temperature, timestamp = dblAPI.get_current_temperature(city)
+            df_current = pd.concat(
+                [
+                    df_current,
+                    pd.DataFrame(
+                        [[city, temperature, timestamp]],
+                        columns=["city", "temperature", "timestamp"],
+                    ),
+                ],
+                ignore_index=True,
+            )
         except TypeError as err:
             pass
-        df_current = pd.concat(
-            [
-                df_current,
-                pd.DataFrame(
-                    [[city, temperature, timestamp]],
-                    columns=["city", "temperature", "timestamp"],
-                ),
-            ],
-            ignore_index=True,
-        )
-
+    print(df_current)
     df_max = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     results = dblAPI.get_all_max_temperatures()
     for result in results:
@@ -72,7 +72,9 @@ def update_current_temperature(n):
             ],
             ignore_index=True,
         )
+    print(df_max)
     fig = px.bar(df_max, x="city", y="temperature")
+    print(df_current.to_dict("records"))
     return [df_current.to_dict("records"), fig]
 
 

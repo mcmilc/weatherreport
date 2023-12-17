@@ -209,7 +209,7 @@ class CSVAPI:
         table_info = get_table_info()
         city_id = get_city_id(city)
         data = []
-        columns = table_info[get_historical_table]["bigquery"].keys()
+        columns = table_info[get_historical_table("bigquery")]["bigquery"].keys()
         uuid = start_uuid
         for s_time, temperature in zip(timestamps, temperatures):
             if temperature is not None:
@@ -369,17 +369,17 @@ class BigQueryAPI(DBAPI):
         return result
 
     def get_all_max_temperatures(self):
-        query = get_all_max_historical_temperatures_query(db_type="mysql")
+        query = get_all_max_historical_temperatures_query(db_type="bigquery")
         return self.execute_query(query_string=query)
 
     def get_current_temperature(self, city: str):
         if self.city_has_current_temperature(city):
-            query = get_current_temperature_query(city=city, db_type="mysql")
-            return self.execute_query(query_string=query)[0][0]
+            query = get_current_temperature_query(city=city, db_type="bigquery")
+            return self.execute_query(query_string=query)[0]
 
     def get_max_temperature_timestamps(self, city, temperature):
         query = get_max_historical_temperature_timestamps_query(
-            city=city, temperature=temperature, db_type="mysql"
+            city=city, temperature=temperature, db_type="bigquery"
         )
         return self.execute_query(query_string=query)[0]
 
