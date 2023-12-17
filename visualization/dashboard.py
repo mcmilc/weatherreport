@@ -42,20 +42,27 @@ app.layout = html.Div(
 def update_current_temperature(n):
     df_current = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     for city in get_all_city_names():
-        try:
-            temperature, timestamp = dblAPI.get_current_temperature(city)
-            df_current = pd.concat(
-                [
-                    df_current,
-                    pd.DataFrame(
-                        [[city, temperature, timestamp]],
-                        columns=["city", "temperature", "timestamp"],
-                    ),
-                ],
-                ignore_index=True,
-            )
-        except TypeError as err:
-            pass
+        # should have something liek get_all_current_temperatures
+        out = dblAPI.get_current_temperature(city)
+        if out is not None:
+            temperature = out[0]
+            timestamp = out[1]
+            if len(df_current) > 0:
+                df_current = pd.concat(
+                    [
+                        df_current,
+                        pd.DataFrame(
+                            [[city, temperature, timestamp]],
+                            columns=["city", "temperature", "timestamp"],
+                        ),
+                    ],
+                    ignore_index=True,
+                )
+            else:
+                df_current = pd.DataFrame(
+                    [[city, temperature, timestamp]],
+                    columns=["city", "temperature", "timestamp"],
+                )
     df_max = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     results = dblAPI.get_all_max_temperatures()
     for result in results:
