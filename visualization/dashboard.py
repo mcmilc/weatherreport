@@ -40,7 +40,6 @@ app.layout = html.Div(
     Input(component_id="interval_component", component_property="n_intervals"),
 )
 def update_current_temperature(n):
-    print("update")
     df_current = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     for city in get_all_city_names():
         try:
@@ -57,7 +56,6 @@ def update_current_temperature(n):
             )
         except TypeError as err:
             pass
-    print(df_current)
     df_max = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     results = dblAPI.get_all_max_temperatures()
     for result in results:
@@ -73,9 +71,7 @@ def update_current_temperature(n):
             ],
             ignore_index=True,
         )
-    print(df_max)
     fig = px.bar(df_max, x="city", y="temperature")
-    print(df_current.to_dict("records"))
     return [df_current.to_dict("records"), fig]
 
 
