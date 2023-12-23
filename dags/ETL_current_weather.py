@@ -4,7 +4,7 @@ import datetime as dt
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from weatherreport.database.dbAPI import DBAPIFactory
+from weatherreport.database.dbAPI import db_wrapper_factory
 from weatherreport.transforms.filters import filter_current_temperature
 from weatherreport.database.queries import get_all_city_names
 from weatherreport.weatherAPI.weatherClient import weatherClientFactory
@@ -29,7 +29,7 @@ dag = DAG(
 
 def update_current():
     wc = weatherClientFactory()
-    mysqlAPI = DBAPIFactory()
+    mysqlAPI = db_wrapper_factory()
     for city in get_all_city_names():
         data = wc.get_current_temperature(city=city)
         # transform

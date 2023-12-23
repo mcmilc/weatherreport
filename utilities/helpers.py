@@ -1,7 +1,10 @@
+"""Helper methods."""
+
 import os
 import json
 import datetime as dt
 import numpy as np
+from mysql.connector import errorcode
 
 # CONFIG
 from weatherreport.config.config import sbw_root
@@ -71,6 +74,21 @@ def get_city_type_info():
     return read_json(filename=pjoin(sbw_root, "data", "city_type_info.json"))
 
 
-def get_city_id(city: str):
+def get_city_id_from_info(city: str):
     city_info = get_city_info()
     return city_info[city]["city_id"]
+
+
+def convert_timestamp(timestamp):
+    return str.replace(timestamp, "T", " ") + ":00"
+
+
+def get_errorcode_flag(code):
+    flag = [x for x in dir(errorcode) if getattr(errorcode, x) == code]
+    if len(flag) == 1:
+        return flag[0]
+
+
+def parse_date_arg(input_date):
+    """Convert year, month, day parts of date string into integers."""
+    return [int(x) for x in input_date.split("_")]

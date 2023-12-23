@@ -1,12 +1,20 @@
+"""Script for uploading data from a csv file to a bigquery table."""
 import os
 import sys
 import getopt
-from weatherreport.database.dbAPI import DBAPIFactory
+from weatherreport.database.dbAPI import db_wrapper_factory
 
 
 def main():
+    """Usage:
+    python3 upload_csv_data_to_bigquery.py [OPTIONS] [PARAMETER]
+
+    OPTIONS and PARAMETERS:
+    -d mysql or bigquery
+    -t table name in quotes
+    """
     input_args = sys.argv[1:]
-    optlist, args = getopt.getopt(input_args, "t:f:r")
+    optlist, _ = getopt.getopt(input_args, "t:f:r")
     reset_table = False
     for opt, arg in optlist:
         if opt == "-t":
@@ -16,11 +24,11 @@ def main():
         elif opt == "-r":
             if arg == 1:
                 reset_table = True
-    dbAPI = DBAPIFactory("bigquery")
+    db_wrapper = db_wrapper_factory("bigquery")
     if reset_table:
-        dbAPI.drop_table(table_name)
-        dbAPI.create_table(table_name)
-    dbAPI.upload_csv_data(table_name=table_name, filename=filename)
+        db_wrapper.drop_table(table_name)
+        db_wrapper.create_table(table_name)
+    db_wrapper.upload_csv_data(table_name=table_name, filename=filename)
     os.remove(filename)
 
 

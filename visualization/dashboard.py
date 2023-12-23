@@ -10,9 +10,9 @@ from dash import Input
 from dash import dcc
 
 from weatherreport.database.queries import get_all_city_names
-from weatherreport.database.dbAPI import DBAPIFactory
+from weatherreport.database.dbAPI import db_wrapper_factory
 
-dblAPI = DBAPIFactory(db_type="bigquery")
+dblAPI = db_wrapper_factory(db_type="bigquery")
 
 app = Dash(__name__)
 

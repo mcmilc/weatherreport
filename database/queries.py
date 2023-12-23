@@ -9,9 +9,9 @@ access_info = pjoin(sbw_root, "data", "access.json")
 
 def append_bigquery_prefix_to_table(db_type, table_name):
     if db_type == "bigquery":
-        access_info = get_access_info("bigqiery")
-        project_id = access_info["project_id"]
-        dataset = access_info["db_name"]
+        _access_info = get_access_info("bigqiery")
+        project_id = _access_info["project_id"]
+        dataset = _access_info["db_name"]
         return project_id + "." + dataset + "." + table_name
     else:
         return table_name
@@ -21,7 +21,7 @@ def add_historical_temperature_query(db_type):
     historical_table = get_historical_table(db_type)
     return (
         f"INSERT INTO {historical_table} (historical_temperature_id, city_id, time_measured, temperature) "
-        f"VALUES (%(historical_temperature_id)s, %(city_id)s, TIMESTAMP('%(time_measured)s'), %(temperature)s)"
+        f"VALUES (%(historical_temperature_id)s, %(city_id)s, TIMESTAMP(%(time_measured)s), %(temperature)s)"
     )
 
 
@@ -45,7 +45,7 @@ def add_current_temperature_query(db_type):
     current_table = get_current_table(db_type)
     return (
         f"INSERT INTO {current_table} (city_id, time_measured, temperature) "
-        f"VALUES (%(city_id)s, TIMESTAMP('%(time_measured)s'), %(temperature)s)"
+        f"VALUES (%(city_id)s, TIMESTAMP(%(time_measured)s), %(temperature)s)"
     )
 
 
@@ -53,7 +53,7 @@ def add_city_type_query(db_type):
     city_type_table = get_city_type_table(db_type)
     return (
         f"INSERT INTO {city_type_table} (city_type_id, name) "
-        f"VALUES (%(city_type_id)s, '%(name)s')"
+        f"VALUES (%(city_type_id)s, %(name)s)"
     )
 
 
@@ -61,7 +61,7 @@ def add_city_query(db_type):
     city_table = get_city_table(db_type)
     return (
         f"INSERT INTO {city_table} (city_id, name, city_type_id, longitude, latitude) "
-        f"VALUES (%(city_id)s, '%(name)s', %(city_type_id)s, %(longitude)s, %(latitude)s)"
+        f"VALUES (%(city_id)s, %(name)s, %(city_type_id)s, %(longitude)s, %(latitude)s)"
     )
 
 
