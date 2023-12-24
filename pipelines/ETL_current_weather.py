@@ -21,7 +21,7 @@ default_args = {
 }
 
 dag = DAG(
-    dag_id="ET_current_weather",
+    dag_id="ETL_current_weather",
     default_args=default_args,
     description="Update current southbay temperature",
     schedule=dt.timedelta(minutes=5),

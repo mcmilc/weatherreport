@@ -11,15 +11,16 @@ from google.cloud import bigquery
 
 # HELPERS
 from weatherreport.utilities.helpers import setup_bigquery_environment
-from weatherreport.utilities.helpers import get_connection_passwd
-from weatherreport.utilities.helpers import get_connection_database
 from weatherreport.utilities.helpers import file_exists
-from weatherreport.utilities.helpers import get_city_id_from_info
-from weatherreport.utilities.helpers import get_city_info
-from weatherreport.utilities.helpers import get_table_info
-from weatherreport.utilities.helpers import get_city_type_info
-from weatherreport.utilities.helpers import get_access_info
 from weatherreport.utilities.helpers import get_errorcode_flag
+
+from weatherreport.data.helpers import get_connection_passwd
+from weatherreport.data.helpers import get_connection_database
+from weatherreport.data.helpers import get_city_id_from_info
+from weatherreport.data.helpers import get_city_info
+from weatherreport.data.helpers import get_table_info
+from weatherreport.data.helpers import get_city_type_info
+from weatherreport.data.helpers import get_access_info
 
 # TRANSFORMS
 from weatherreport.transforms.converters import round_float_to_int
