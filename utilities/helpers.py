@@ -3,7 +3,6 @@
 import os
 import json
 import datetime as dt
-import numpy as np
 from mysql.connector import errorcode
 
 # CONFIG
@@ -11,6 +10,7 @@ from weatherreport.config.config import sbw_root
 
 pjoin = os.path.join
 file_exists = os.path.exists
+access_info_file = pjoin(sbw_root, "data", "access.json")
 
 
 def build_date(year: int, month: int, day: int) -> str:
@@ -21,33 +21,16 @@ def read_json(filename: str) -> dict:
     return json.load(open(filename))
 
 
-def round_val(value: float) -> int:
-    return int(np.round(value))
-
-
-def generate_uuid(s_time: str, city_id: int = 1) -> int:
-    """Generates uuid based on absolute time in int format
-
-    Args:
-        s_time (str): timestamp from weatherAPI in yyyy-mm-ddThh:mm format
-
-    Returns:
-        int: absolute time
-    """
-    dt_time = dt.datetime.strptime(s_time, "%Y-%m-%dT%H:%M")
-    return round_val(dt_time.timestamp()) + int(city_id)
-
-
 def get_connection_passwd(db_type):
-    return read_json(pjoin(sbw_root, "data", "access.json"))[db_type]["passwd"]
+    return read_json(access_info_file)[db_type]["passwd"]
 
 
 def get_connection_database(db_type):
-    return read_json(pjoin(sbw_root, "data", "access.json"))[db_type]["db_name"]
+    return read_json(access_info_file)[db_type]["db_name"]
 
 
 def get_access_info(db_type):
-    return read_json(pjoin(sbw_root, "data", "access.json"))[db_type]
+    return read_json(access_info_file)[db_type]
 
 
 def get_api_info():
@@ -56,6 +39,22 @@ def get_api_info():
 
 def get_city_info():
     return read_json(filename=pjoin(sbw_root, "data", "city_info.json"))
+
+
+def get_current_temperature_table(db_type):
+    return read_json(access_info_file)[db_type]["tables"]["current"]
+
+
+def get_city_type_table(db_type):
+    return read_json(access_info_file)[db_type]["tables"]["city_type"]
+
+
+def get_city_table(db_type):
+    return read_json(access_info_file)[db_type]["tables"]["city"]
+
+
+def get_historical_temperature_table(db_type):
+    return read_json(access_info_file)[db_type]["tables"]["historical"]
 
 
 def setup_bigquery_environment(service_account_file):
@@ -77,10 +76,6 @@ def get_city_type_info():
 def get_city_id_from_info(city: str):
     city_info = get_city_info()
     return city_info[city]["city_id"]
-
-
-def convert_timestamp(timestamp):
-    return str.replace(timestamp, "T", " ") + ":00"
 
 
 def get_errorcode_flag(code):

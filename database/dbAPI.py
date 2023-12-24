@@ -2,6 +2,7 @@
 """
 from abc import abstractmethod
 from abc import ABC
+import datetime as dt
 import mysql.connector
 import pandas as pd
 from google.cloud import bigquery
@@ -12,8 +13,6 @@ from google.cloud import bigquery
 from weatherreport.utilities.helpers import setup_bigquery_environment
 from weatherreport.utilities.helpers import get_connection_passwd
 from weatherreport.utilities.helpers import get_connection_database
-from weatherreport.utilities.helpers import generate_uuid
-from weatherreport.utilities.helpers import round_val
 from weatherreport.utilities.helpers import file_exists
 from weatherreport.utilities.helpers import get_city_id_from_info
 from weatherreport.utilities.helpers import get_city_info
@@ -21,7 +20,10 @@ from weatherreport.utilities.helpers import get_table_info
 from weatherreport.utilities.helpers import get_city_type_info
 from weatherreport.utilities.helpers import get_access_info
 from weatherreport.utilities.helpers import get_errorcode_flag
-from weatherreport.utilities.helpers import convert_timestamp
+
+# TRANSFORMS
+from weatherreport.transforms.converters import round_float_to_int
+from weatherreport.transforms.converters import convert_timestamp
 
 # QUERIES
 from weatherreport.database.queries import flush_table_query
@@ -42,8 +44,9 @@ from weatherreport.database.queries import get_all_max_historical_temperatures_q
 from weatherreport.database.queries import get_current_temperature_query
 from weatherreport.database.queries import create_table_query
 from weatherreport.database.queries import drop_table_query
-from weatherreport.database.queries import get_historical_table
+from weatherreport.database.queries import get_historical_temperature_table
 from weatherreport.database.queries import get_max_entry
+from weatherreport.database.queries import get_max_historical_temperature_id
 
 
 def db_wrapper_factory(db_type):
@@ -140,7 +143,7 @@ class DBWrapper:
         )
 
     def upload_historical_temperature(
-        self, timestamps: list, temperature: list, city: str
+        self, timestamps: list, temperatures: list, city: str
     ) -> None:
         """Upload historical temperature to database
 
@@ -149,22 +152,35 @@ class DBWrapper:
             temperature (dict)
             city (str)
         """
+        uuid = self.get_max_historical_temperature_id() + 1
+        max_timestamp = None
+        if uuid > 1:
+            max_timestamp = self.get_latest_historical_temperature_timestamp(city=city)
         city_id = get_city_id_from_info(city)
-        for s_time, temp in zip(timestamps, temperature):
+        for s_time, temp in zip(timestamps, temperatures):
             if temp is not None:
                 # this is incorrect in terms of normalization
-                uuid = generate_uuid(s_time=s_time, city_id=city_id)
+                # uuid = generate_uuid(s_time=s_time, city_id=city_id)
+                current_timestamp = convert_timestamp(s_time)
+                if max_timestamp is not None:
+                    if max_timestamp > dt.datetime.fromisoformat(current_timestamp):
+                        print(
+                            f"Disgarding timestamp {current_timestamp} since current latest entry is newer."
+                        )
+                        continue
                 params = {
                     "historical_temperature_id": uuid,
                     "city_id": city_id,
-                    "time_measured": convert_timestamp(s_time),
-                    "temperature": round_val(temp),
+                    "time_measured": current_timestamp,
+                    "temperature": round_float_to_int(temp),
                 }
+                query = add_historical_temperature_query(self._db_type)
                 self.client.execute_query(
-                    query_string=add_historical_temperature_query("mysql"),
+                    query_string=query,
                     params=params,
                     commit=True,
                 )
+                uuid += 1
 
     def upload_current_temperature(self, timestamp: str, temperature: int, city: str):
         """Upload current temperature data to database.
@@ -179,7 +195,7 @@ class DBWrapper:
             self.client.execute_query(
                 query_string=update_current_temperature_query(
                     city_id=city_id,
-                    temperature=round_val(temperature),
+                    temperature=round_float_to_int(temperature),
                     timestamp=convert_timestamp(timestamp),
                     db_type=self._db_type,
                 ),
@@ -190,7 +206,7 @@ class DBWrapper:
             params = {
                 "city_id": city_id,
                 "time_measured": timestamp,
-                "temperature": round_val(temperature),
+                "temperature": round_float_to_int(temperature),
             }
             self.client.execute_query(
                 query_string=add_current_temperature_query("mysql"),
@@ -221,7 +237,6 @@ class DBWrapper:
                 "latitude": city_info[city]["latitude"],
             }
             query = add_city_query(db_type=self._db_type)
-            print(query)
             self.client.execute_query(
                 query_string=query,
                 params=params,
@@ -235,11 +250,14 @@ class DBWrapper:
         result = self.client.execute_query(
             get_max_entry(
                 entry="time_measured",
-                table_name=get_historical_table("bigquery"),
+                table_name=get_historical_temperature_table("bigquery"),
                 city_id=city_id,
             )
         )
-        return result
+        if len(result) > 0:
+            if result[0][0] is not None:
+                return result[0][0]
+        return None
 
     def get_max_temperature(self, city: str):
         """Get maximal historical temperature for city.
@@ -298,6 +316,34 @@ class DBWrapper:
             if len(result) > 0:
                 return result[0][0]
         return []
+
+    def get_max_historical_temperature_id(self) -> int:
+        """Get max historical temperature id
+
+        Returns:
+            _type_: _description_
+        """
+        query = get_max_historical_temperature_id(self._db_type)
+        result = self.client.execute_query(query_string=query)
+        if result[0][0] is not None:
+            return result[0][0]
+        return 0
+
+    def get_historical_temperature_deltas(self):
+        """Example Code:
+        cities = self.get_all_cities_from_database()
+        cities = [4,2,7,5]
+        N = len(cities)
+        indexes = [x for x in range(len(cities))]
+        c_1_city_indexes = indexes[:(N-1)]
+        abs_calcs = []
+        start = 0
+        for i in c_1_city_indexes:
+            for j in indexes[(start + 1):N]:
+                abs_calcs.append((i,j))
+            start += 1
+        """
+        pass
 
     def flush_table(self, table_name):
         """Remove all entries from table."""
@@ -400,12 +446,14 @@ class CSVWrapper:
         table_info = get_table_info()
         city_id = get_city_id_from_info(city)
         data = []
-        columns = table_info[get_historical_table("bigquery")]["bigquery"].keys()
+        columns = table_info[get_historical_temperature_table("bigquery")][
+            "bigquery"
+        ].keys()
         uuid = start_uuid
         for s_time, temperature in zip(timestamps, temperatures):
             if temperature is not None:
                 time_measured = convert_timestamp(s_time)
-                temperature = round_val(temperature)
+                temperature = round_float_to_int(temperature)
                 data.append((uuid, city_id, time_measured, temperature))
                 uuid += 1
         df = pd.DataFrame(columns=columns, data=data)

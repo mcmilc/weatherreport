@@ -1,11 +1,12 @@
-import pendulum
+"""DAG that uploads current temperature to database."""
 import datetime as dt
+import pendulum
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
 from weatherreport.database.dbAPI import db_wrapper_factory
-from weatherreport.transforms.filters import filter_current_temperature
+from weatherreport.transforms.selectors import select_current_temperature
 from weatherreport.database.queries import get_all_city_names
 from weatherreport.weatherAPI.weatherClient import weatherClientFactory
 
@@ -24,26 +25,28 @@ dag = DAG(
     default_args=default_args,
     description="Update current southbay temperature",
     schedule=dt.timedelta(minutes=5),
+    params={"db_type": "mysql"},
 )
 
 
-def update_current():
+def _upload_current_temperature(**context):
+    """Callback that uploads current temperature of a city to database."""
     wc = weatherClientFactory()
-    mysqlAPI = db_wrapper_factory()
+    db_wrapper = db_wrapper_factory(context["params"]["db_type"])
     for city in get_all_city_names():
         data = wc.get_current_temperature(city=city)
         # transform
-        timestamp, temperature = filter_current_temperature(data)
+        timestamp, temperature = select_current_temperature(data)
         # load
-        mysqlAPI.populate_current_temperature(
+        db_wrapper.upload_current_temperature(
             timestamp=timestamp, temperature=temperature, city=city
         )
 
 
-update_current_temperature = PythonOperator(
+upload_current_temperature = PythonOperator(
     task_id="update_current_temperature",
-    python_callable=update_current,
+    python_callable=_upload_current_temperature,
     dag=dag,
 )
 
-update_current
+_upload_current_temperature

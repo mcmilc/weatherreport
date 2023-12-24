@@ -3,8 +3,10 @@ from weatherreport.utilities.helpers import pjoin
 from weatherreport.utilities.helpers import read_json
 from weatherreport.utilities.helpers import get_table_info
 from weatherreport.utilities.helpers import get_access_info
-
-access_info = pjoin(sbw_root, "data", "access.json")
+from weatherreport.utilities.helpers import get_historical_temperature_table
+from weatherreport.utilities.helpers import get_current_temperature_table
+from weatherreport.utilities.helpers import get_city_type_table
+from weatherreport.utilities.helpers import get_city_table
 
 
 def append_bigquery_prefix_to_table(db_type, table_name):
@@ -18,31 +20,15 @@ def append_bigquery_prefix_to_table(db_type, table_name):
 
 
 def add_historical_temperature_query(db_type):
-    historical_table = get_historical_table(db_type)
+    historical_table = get_historical_temperature_table(db_type)
     return (
         f"INSERT INTO {historical_table} (historical_temperature_id, city_id, time_measured, temperature) "
         f"VALUES (%(historical_temperature_id)s, %(city_id)s, TIMESTAMP(%(time_measured)s), %(temperature)s)"
     )
 
 
-def get_current_table(db_type):
-    return read_json(access_info)[db_type]["tables"]["current"]
-
-
-def get_city_type_table(db_type):
-    return read_json(access_info)[db_type]["tables"]["city_type"]
-
-
-def get_city_table(db_type):
-    return read_json(access_info)[db_type]["tables"]["city"]
-
-
-def get_historical_table(db_type):
-    return read_json(access_info)[db_type]["tables"]["historical"]
-
-
 def add_current_temperature_query(db_type):
-    current_table = get_current_table(db_type)
+    current_table = get_current_temperature_table(db_type)
     return (
         f"INSERT INTO {current_table} (city_id, time_measured, temperature) "
         f"VALUES (%(city_id)s, TIMESTAMP(%(time_measured)s), %(temperature)s)"
@@ -71,7 +57,7 @@ def get_all_city_names():
 
 
 def get_all_max_historical_temperatures_query(db_type):
-    historical_table = get_historical_table(db_type)
+    historical_table = get_historical_temperature_table(db_type)
     city_table = get_city_table(db_type)
     return (
         f"SELECT "
@@ -86,7 +72,7 @@ def get_all_max_historical_temperatures_query(db_type):
 def get_max_historical_temperature_timestamps_query(
     city: str, temperature: int, db_type: str
 ):
-    historical_table = get_historical_table(db_type)
+    historical_table = get_historical_temperature_table(db_type)
     return (
         f"SELECT time_measured "
         f"FROM {historical_table} "
@@ -96,7 +82,7 @@ def get_max_historical_temperature_timestamps_query(
 
 
 def get_max_historical_temperature_for_city_query(city: int, db_type: str):
-    historical_table = get_historical_table(db_type)
+    historical_table = get_historical_temperature_table(db_type)
     city_table = get_city_table(db_type)
     return (
         f"SELECT MAX({historical_table}.temperature) "
@@ -106,7 +92,7 @@ def get_max_historical_temperature_for_city_query(city: int, db_type: str):
 
 
 def get_current_temperature_query(city: str, db_type: str):
-    current_table = get_current_table(db_type)
+    current_table = get_current_temperature_table(db_type)
     city_table = get_city_table(db_type)
     return (
         f"SELECT {current_table}.temperature, {current_table}.time_measured FROM {current_table} "
@@ -118,7 +104,7 @@ def get_current_temperature_query(city: str, db_type: str):
 def update_current_temperature_query(
     city_id: int, temperature: int, timestamp: str, db_type
 ):
-    current_table = get_current_table(db_type)
+    current_table = get_current_temperature_table(db_type)
     return (
         f"UPDATE {current_table} "
         f"SET "
@@ -130,7 +116,7 @@ def update_current_temperature_query(
 
 
 def city_has_current_temperature_query(city_id: int, db_type: str):
-    current_table = get_current_table(db_type)
+    current_table = get_current_temperature_table(db_type)
     return f"SELECT city_id FROM {current_table} WHERE city_id = {city_id}"
 
 
@@ -165,3 +151,46 @@ def get_max_entry(entry: str, table_name: str, city_id: int = None) -> str:
         return f"SELECT MAX({entry}) from {table_name}"
     else:
         return f"SELECT MAX({entry}) from {table_name} WHERE city_id = {city_id}"
+
+
+def get_max_historical_temperature_id(db_type) -> str:
+    """Get max PK entry of historical temperature table."""
+    historical_table = get_historical_temperature_table(db_type)
+    return f"SELECT MAX(historical_temperature_id) FROM {historical_table}"
+
+
+def get_max_temperature_delta_between_city_pair(city_id_1, city_id_2):
+    return (
+        f"SELECT MAX(ABS(tab_1.temp_1 - tab_2.temp_2)) "
+        f"FROM (SELECT city_id as city_id_1, time_measured as time_1, temperature as temp_1 "
+        f"FROM historical_temperature WHERE city_id = {city_id_1} ) tab_1 "
+        f"JOIN (SELECT city_id as city_id_2, time_measured as time_2, "
+        f"temperature as temp_2 FROM historical_temperature WHERE city_id = {city_id_2}) tab_2 "
+        f"ON tab_1.time_1 = tab_2.time_2"
+    )
+
+
+"""
+SELECT
+tab_1.time_1 AS DELTA_TIME,
+ABS(tab_1.temp_1 - tab_2.temp_2) AS DELTA
+FROM 
+	(
+	SELECT
+    	city_id as city_id_1,
+		time_measured as time_1,
+    	temperature as temp_1
+	FROM `historical_temperature`
+	WHERE city_id = 4) tab_1
+JOIN
+(	
+    SELECT
+ 		city_id as city_id_2,
+ 		time_measured as time_2,
+ 		temperature as temp_2
+		FROM `historical_temperature` 
+		WHERE city_id = 8) tab_2 
+ON tab_1.time_1 = tab_2.time_2
+ORDER BY DELTA DESC
+LIMIT 1;
+"""
