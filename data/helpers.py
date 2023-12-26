@@ -91,7 +91,7 @@ def get_city_id_from_info(city: str):
 def get_all_city_names():
     """Return all cities registered in info."""
     city_info = pjoin(weather_report_root, "data", "city_info.json")
-    return read_json_file(city_info).keys()
+    return list(read_json_file(city_info).keys())
 
 
 def append_suffix_to_filename(filename: str, suffix: str):

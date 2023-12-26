@@ -6,7 +6,7 @@ import pendulum
 
 from airflow import DAG
 from airflow.decorators import task
-
+from airflow.operators.python import PythonOperator
 
 from weatherreport.config.config import ENV_VAR_NAME
 from weatherreport.utilities.filesystem_utils import pjoin
@@ -47,15 +47,8 @@ def _prepare_filename(filename, suffix):
     return append_suffix_to_filename(filename, suffix)
 
 
-with DAG(
-    dag_id="ETL_current_weather",
-    default_args=default_args,
-    description="Update current southbay temperature",
-    schedule=dt.timedelta(minutes=15),
-    start_date=pendulum.today("UTC").add(days=0),
-    catchup=False,
-) as dag:
-    # Extract
+def initialize_temp_folder(**kwargs):
+    ti = kwargs["ti"]
     if not pexists(pjoin(os.environ[ENV_VAR_NAME], _tmp_files_metadata)):
         tmp_timestamp_file = generate_temp_filename()
         tmp_temperature_file = generate_temp_filename()
@@ -78,110 +71,140 @@ with DAG(
         "tmp_temperature_file": tmp_temperature_file,
         "tmp_timestamp_file": tmp_timestamp_file,
     }
+    data_string = json.dumps(params)
+    ti.xcom_push("params", data_string)
 
-    @task(task_id="extract_data")
-    def _extract_data(params):
-        """_summary_
 
-        Args:
-            params (_type_): _description_
-            test_mode (_type_, optional): _description_. Defaults to None.
-            task (_type_, optional): _description_. Defaults to None.
+def _extract_data(**kwargs):
+    """_summary_
 
-        Returns:
-            _type_: _description_
-        """
-        wc = weather_client_factory()
-        cities = params["cities"]
-        tmp_timestamp_file = params["tmp_timestamp_file"]
-        tmp_temperature_file = params["tmp_temperature_file"]
-        for city in cities:
-            data = wc.get_current_temperature(city=city)
-            timestamp, temperature = select_current_temperature(data)
-            _tmp_timestamp_file = _prepare_filename(
-                filename=tmp_timestamp_file, suffix="_" + city
-            )
-            _tmp_temperature_file = _prepare_filename(
-                filename=tmp_temperature_file, suffix="_" + city
-            )
-            # store_as_json_to_tempdir(timestamp, _tmp_timestamp_file)
-            # store_as_json_to_tempdir(temperature, _tmp_temperature_file)
-            with open(_tmp_timestamp_file, "wt") as fp:
-                fp.write(timestamp)
-            with open(_tmp_temperature_file, "wt") as fp:
-                fp.write(str(temperature))
-        return 1
+    Args:
+        params (_type_): _description_
+        test_mode (_type_, optional): _description_. Defaults to None.
+        task (_type_, optional): _description_. Defaults to None.
 
-    # Transform timestamps
-    @task(task_id="transform_timestamp")
-    def _transform_timestamp(params):
-        cities = params["cities"]
-        tmp_timestamp_file = params["tmp_timestamp_file"]
-        for city in cities:
-            _tmp_timestamp_file = _prepare_filename(
-                filename=tmp_timestamp_file, suffix="_" + city
-            )
-            with open(_tmp_timestamp_file, "rt") as fp:
-                data = fp.read()
-            transformed_data = convert_timestamp(data)
-            with open(_tmp_timestamp_file, "wt") as fp:
-                fp.write(transformed_data)
-        return 1
+    Returns:
+        _type_: _description_
+    """
+    ti = kwargs["ti"]
+    params = ti.xcom_pull(task_ids="initialize", key="params")
+    params = json.loads(params)
+    wc = weather_client_factory()
+    cities = params["cities"]
+    tmp_timestamp_file = params["tmp_timestamp_file"]
+    tmp_temperature_file = params["tmp_temperature_file"]
+    for city in cities:
+        data = wc.get_current_temperature(city=city)
+        timestamp, temperature = select_current_temperature(data)
+        _tmp_timestamp_file = _prepare_filename(
+            filename=tmp_timestamp_file, suffix="_" + city
+        )
+        _tmp_temperature_file = _prepare_filename(
+            filename=tmp_temperature_file, suffix="_" + city
+        )
+        # store_as_json_to_tempdir(timestamp, _tmp_timestamp_file)
+        # store_as_json_to_tempdir(temperature, _tmp_temperature_file)
+        with open(_tmp_timestamp_file, "wt") as fp:
+            fp.write(timestamp)
+        with open(_tmp_temperature_file, "wt") as fp:
+            fp.write(str(temperature))
 
-    # Transform temperature
-    @task(task_id="transform_temperature")
-    def _transform_temperature(params):
-        cities = params["cities"]
-        tmp_temperature_file = params["tmp_temperature_file"]
-        for city in cities:
-            _tmp_temperature_file = _prepare_filename(
-                filename=tmp_temperature_file, suffix="_" + city
-            )
-            with open(_tmp_temperature_file, "rt") as fp:
-                data = float(fp.read())
-            transformed_data = round_float_to_int(data)
-            with open(_tmp_temperature_file, "wt") as fp:
-                fp.write(str(transformed_data))
-        return 1
 
-    # Load data
-    @task(task_id="load_data_to_db")
-    def _load_data_to_db(params):
-        db_wrapper = db_wrapper_factory(params["db_type"])
-        cities = params["cities"]
-        tmp_timestamp_file = params["tmp_timestamp_file"]
-        tmp_temperature_file = params["tmp_temperature_file"]
-        for city in cities:
-            _tmp_timestamp_file = _prepare_filename(
-                filename=tmp_timestamp_file, suffix="_" + city
-            )
-            _tmp_temperature_file = _prepare_filename(
-                filename=tmp_temperature_file, suffix="_" + city
-            )
-            with open(_tmp_timestamp_file, "rt") as fp:
-                timestamp = fp.read()
-            with open(_tmp_temperature_file, "rt") as fp:
-                temperature = int(fp.read())
-            temperature = read_json_file(_tmp_temperature_file)
-            db_wrapper.load_current_temperature(
-                timestamp=timestamp, temperature=temperature, city=city
-            )
-        return 1
+# Transform timestamps
+def _transform_timestamp(**kwargs):
+    ti = kwargs["ti"]
+    params = ti.xcom_pull(task_ids="initialize", key="params")
+    params = json.loads(params)
+    cities = params["cities"]
+    tmp_timestamp_file = params["tmp_timestamp_file"]
+    for city in cities:
+        _tmp_timestamp_file = _prepare_filename(
+            filename=tmp_timestamp_file, suffix="_" + city
+        )
+        with open(_tmp_timestamp_file, "rt") as fp:
+            data = fp.read()
+        transformed_data = convert_timestamp(data)
+        with open(_tmp_timestamp_file, "wt") as fp:
+            fp.write(transformed_data)
 
-    # Delete temperary files
-    @task(task_id="clean_up")
-    def _clean_up():
-        for f in os.listdir(os.environ[ENV_VAR_NAME]):
-            remove_temporary_file(pjoin(os.environ[ENV_VAR_NAME], f))
-        return 1
 
-    extract_data = _extract_data(params=params)
-    transform_timestamp = _transform_timestamp(params=params)
-    transform_temperature = _transform_temperature(params=params)
-    load_data_to_db = _load_data_to_db(params=params)
-    clean_up = _clean_up()
+# Transform temperature
+def _transform_temperature(**kwargs):
+    ti = kwargs["ti"]
+    params = ti.xcom_pull(task_ids="initialize", key="params")
+    params = json.loads(params)
+    cities = params["cities"]
+    tmp_temperature_file = params["tmp_temperature_file"]
+    for city in cities:
+        _tmp_temperature_file = _prepare_filename(
+            filename=tmp_temperature_file, suffix="_" + city
+        )
+        with open(_tmp_temperature_file, "rt") as fp:
+            data = float(fp.read())
+        transformed_data = round_float_to_int(data)
+        with open(_tmp_temperature_file, "wt") as fp:
+            fp.write(str(transformed_data))
+
+
+# Load data
+def _load_data_to_db(**kwargs):
+    ti = kwargs["ti"]
+    params = ti.xcom_pull(task_ids="initialize", key="params")
+    params = json.loads(params)
+    db_wrapper = db_wrapper_factory(params["db_type"])
+    cities = params["cities"]
+    tmp_timestamp_file = params["tmp_timestamp_file"]
+    tmp_temperature_file = params["tmp_temperature_file"]
+    for city in cities:
+        _tmp_timestamp_file = _prepare_filename(
+            filename=tmp_timestamp_file, suffix="_" + city
+        )
+        _tmp_temperature_file = _prepare_filename(
+            filename=tmp_temperature_file, suffix="_" + city
+        )
+        with open(_tmp_timestamp_file, "rt") as fp:
+            timestamp = fp.read()
+        with open(_tmp_temperature_file, "rt") as fp:
+            temperature = int(fp.read())
+        temperature = read_json_file(_tmp_temperature_file)
+        db_wrapper.load_current_temperature(
+            timestamp=timestamp, temperature=temperature, city=city
+        )
+
+
+def _clean_up():
+    for f in os.listdir(os.environ[ENV_VAR_NAME]):
+        remove_temporary_file(pjoin(os.environ[ENV_VAR_NAME], f))
+
+
+with DAG(
+    dag_id="ETL_current_weather",
+    default_args=default_args,
+    description="Update current southbay temperature",
+    schedule=dt.timedelta(minutes=15),
+    start_date=pendulum.today("UTC").add(days=0),
+    catchup=False,
+) as dag:
+    # Extract
+
+    initialize = PythonOperator(
+        task_id="initialize", python_callable=initialize_temp_folder
+    )
+
+    extract_data = PythonOperator(task_id="extract_data", python_callable=_extract_data)
+    transform_timestamp = PythonOperator(
+        task_id="transform_timestamp", python_callable=_transform_timestamp
+    )
+    transform_temperature = PythonOperator(
+        task_id="transform_temperature", python_callable=_transform_temperature
+    )
+    load_data_to_db = PythonOperator(
+        task_id="load_data_to_db", python_callable=_load_data_to_db
+    )
+    clean_up = PythonOperator(task_id="clean_up", python_callable=_clean_up)
     (
-        extract_data
+        initialize
+        >> extract_data
         >> transform_timestamp
         >> transform_temperature
         >> load_data_to_db
