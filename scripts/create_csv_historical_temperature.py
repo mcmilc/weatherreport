@@ -4,13 +4,13 @@ import getopt
 from weatherreport.utilities.helpers import build_date
 from weatherreport.utilities.helpers import parse_date_arg
 from weatherreport.transforms.selectors import select_historical_temperature
-from weatherreport.weatherAPI.weatherClient import weatherClientFactory
+from weatherreport.weatherAPI.weatherClient import weather_client_factory
 from weatherreport.database.dbAPI import CSVWrapper
 
 
 def main():
     """Usage:"""
-    wc = weatherClientFactory()
+    wc = weather_client_factory()
     input_args = sys.argv[1:]
     optlist, _ = getopt.getopt(input_args, "s:e:c:i:f:")
     for opt, arg in optlist:

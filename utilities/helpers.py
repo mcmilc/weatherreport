@@ -5,10 +5,8 @@ import datetime as dt
 from mysql.connector import errorcode
 
 # CONFIG
-from weatherreport.config.config import sbw_root
-
-pjoin = os.path.join
-file_exists = os.path.exists
+from weatherreport.config.config import weather_report_root
+from weatherreport.utilities.filesystem_utils import pjoin
 
 
 def build_date(year: int, month: int, day: int) -> str:
@@ -17,7 +15,7 @@ def build_date(year: int, month: int, day: int) -> str:
 
 def setup_bigquery_environment(service_account_file):
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = pjoin(
-        sbw_root,
+        weather_report_root,
         "database",
         service_account_file,
     )

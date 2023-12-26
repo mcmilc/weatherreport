@@ -1,15 +1,18 @@
+"""Wrappers around weather api."""
 import json
 
 # HELPERS
 from weatherreport.utilities.helpers import build_date
-from weatherreport.utilities.helpers import get_api_info
-from weatherreport.utilities.helpers import get_city_info
+from weatherreport.data.helpers import get_weather_api_info
+from weatherreport.data.helpers import get_city_info
 
 # Weather API
 from weatherreport.weatherAPI.weatherAPI import WeatherAPI
 
 
 class WeatherClient:
+    """Client consuming weather api."""
+
     def __init__(self, api: WeatherAPI, api_info: dict, city_info: dict):
         self._api = api
         self._api_info = api_info
@@ -122,22 +125,22 @@ class WeatherClient:
         return self._retrieve_data(url, parameters)
 
 
-def weatherClientFactory():
+def weather_client_factory():
     """Simple weatherClient factory
 
     Returns:
         WeatherClient
     """
-    api_info = get_api_info()
+    api_info = get_weather_api_info()
     city_info = get_city_info()
     return WeatherClient(api=WeatherAPI(), api_info=api_info, city_info=city_info)
 
 
 if __name__ == "__main__":
-    wc = weatherClientFactory()
-    start_date = build_date(year=2023, month=11, day=20)
-    end_date = build_date(year=2023, month=11, day=23)
+    wc = weather_client_factory()
+    _start_date = build_date(year=2023, month=11, day=20)
+    _end_date = build_date(year=2023, month=11, day=23)
     data = wc.get_historical_temperature(
-        start_date=start_date, end_date=end_date, city="Hawthorne", interval="hourly"
+        start_date=_start_date, end_date=_end_date, city="Hawthorne", interval="hourly"
     )
     print(data)

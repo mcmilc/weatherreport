@@ -3,9 +3,9 @@ import sys
 import getopt
 from weatherreport.utilities.helpers import build_date
 from weatherreport.utilities.helpers import parse_date_arg
-from weatherreport.utilities.helpers import get_historical_temperature_table
+from weatherreport.data.helpers import get_table_name_historical_temperature
 from weatherreport.transforms.selectors import select_historical_temperature
-from weatherreport.weatherAPI.weatherClient import weatherClientFactory
+from weatherreport.weatherAPI.weatherClient import weather_client_factory
 from weatherreport.database.dbAPI import db_wrapper_factory
 from weatherreport.database.dbAPI import CSVWrapper
 
@@ -22,7 +22,7 @@ def main():
     -d databse i.e. either mysql or bigquery
     -r recreate table flag
     """
-    wc = weatherClientFactory()
+    wc = weather_client_factory()
     input_args = sys.argv[1:]
     optlist, _ = getopt.getopt(input_args, "s:e:c:i:d:r:f")
     filename = ""
@@ -45,7 +45,7 @@ def main():
         elif opt == "-f":
             filename = arg
 
-    table_name = get_historical_temperature_table(db_type)
+    table_name = get_table_name_historical_temperature(db_type)
 
     if db_type == "bigquery" and filename == "":
         raise getopt.GetoptError("Argument -f with filename required for bigquery")
@@ -56,7 +56,7 @@ def main():
         start_date=start_date, end_date=end_date, city=city, interval=interval
     )
     # transform
-    timestamps, temperature = select_historical_temperature(data, interval)
+    timestamps, temperatures = select_historical_temperature(data, interval)
     # load
     if recreate_table == "1":
         db_wrapper.drop_table(table_name)
@@ -65,13 +65,13 @@ def main():
         csv_wrapper = CSVWrapper()
         csv_wrapper.create_historical_temperature_file(
             timestamps=timestamps,
-            temperatures=temperature,
+            temperatures=temperatures,
             city=city,
             filename=filename,
         )
     elif db_type == "mysql":
-        db_wrapper.upload_historical_temperature(
-            timestamps=timestamps, temperature=temperature, city=city
+        db_wrapper.load_historical_temperature(
+            timestamps=timestamps, temperatures=temperatures, city=city
         )
 
 

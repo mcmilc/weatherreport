@@ -4,8 +4,8 @@ import getopt
 
 from weatherreport.database.dbAPI import db_wrapper_factory
 from weatherreport.transforms.selectors import select_current_temperature
-from weatherreport.weatherAPI.weatherClient import weatherClientFactory
-from weatherreport.database.queries import get_current_temperature_table
+from weatherreport.weatherAPI.weatherClient import weather_client_factory
+from weatherreport.data.helpers import get_table_name_current_temperature
 
 
 def main():
@@ -30,16 +30,16 @@ def main():
             # drop and create table
             re_create = arg
     # extract
-    wc = weatherClientFactory()
+    wc = weather_client_factory()
     data = wc.get_current_temperature(city=city)
     # transform
     timestamp, temperature = select_current_temperature(data)
     db_wrapper = db_wrapper_factory(db_type)
     # load
     if re_create == "1":
-        db_wrapper.drop_table(get_current_temperature_table(db_type))
-        db_wrapper.create_table(get_current_temperature_table(db_type))
-    db_wrapper.upload_current_temperature(
+        db_wrapper.drop_table(get_table_name_current_temperature(db_type))
+        db_wrapper.create_table(get_table_name_current_temperature(db_type))
+    db_wrapper.load_current_temperature(
         timestamp=timestamp, temperature=temperature, city=city
     )
 

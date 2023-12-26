@@ -8,7 +8,7 @@ from airflow.operators.python import PythonOperator
 from weatherreport.database.dbAPI import db_wrapper_factory
 from weatherreport.transforms.selectors import select_historical_temperature
 from weatherreport.database.queries import get_all_city_names
-from weatherreport.weatherAPI.weatherClient import weatherClientFactory
+from weatherreport.weatherAPI.weatherClient import weather_client_factory
 
 default_args = {
     "owner": "Matthias Milczynski",
@@ -31,14 +31,14 @@ dag = DAG(
 
 def _upload_current_temperature(**context):
     """Callback that uploads current temperature of a city to database."""
-    wc = weatherClientFactory()
+    wc = weather_client_factory()
     db_wrapper = db_wrapper_factory(context["params"]["db_type"])
     for city in get_all_city_names():
         data = wc.get_current_temperature(city=city)
         # transform
         timestamps, temperatures = select_historical_temperature(data)
         # load
-        db_wrapper.upload_historical_temperature(
+        db_wrapper.load_historical_temperature(
             timestamps=timestamps, temperatures=temperatures, city=city
         )
 

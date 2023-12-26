@@ -28,7 +28,7 @@ def main():
     if reset_table:
         db_wrapper.drop_table(table_name)
         db_wrapper.create_table(table_name)
-    db_wrapper.upload_csv_data(table_name=table_name, filename=filename)
+    db_wrapper.load_csv_data(table_name=table_name, filename=filename)
     os.remove(filename)
 
 

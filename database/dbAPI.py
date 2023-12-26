@@ -11,16 +11,17 @@ from google.cloud import bigquery
 
 # HELPERS
 from weatherreport.utilities.helpers import setup_bigquery_environment
-from weatherreport.utilities.helpers import file_exists
+from weatherreport.utilities.filesystem_utils import pexists
 from weatherreport.utilities.helpers import get_errorcode_flag
 
-from weatherreport.data.helpers import get_connection_passwd
-from weatherreport.data.helpers import get_connection_database
+from weatherreport.data.helpers import get_connection_passwd_info
+from weatherreport.data.helpers import get_database_name_info
 from weatherreport.data.helpers import get_city_id_from_info
 from weatherreport.data.helpers import get_city_info
 from weatherreport.data.helpers import get_table_info
 from weatherreport.data.helpers import get_city_type_info
-from weatherreport.data.helpers import get_access_info
+from weatherreport.data.helpers import get_database_access_info
+from weatherreport.data.helpers import get_table_name_historical_temperature
 
 # TRANSFORMS
 from weatherreport.transforms.converters import round_float_to_int
@@ -45,7 +46,6 @@ from weatherreport.database.queries import get_all_max_historical_temperatures_q
 from weatherreport.database.queries import get_current_temperature_query
 from weatherreport.database.queries import create_table_query
 from weatherreport.database.queries import drop_table_query
-from weatherreport.database.queries import get_historical_temperature_table
 from weatherreport.database.queries import get_max_entry
 from weatherreport.database.queries import get_max_historical_temperature_id
 
@@ -53,12 +53,12 @@ from weatherreport.database.queries import get_max_historical_temperature_id
 def db_wrapper_factory(db_type):
     """Factory of database apis."""
     if db_type == "mysql":
-        passwd = get_connection_passwd(db_type=db_type)
-        database = get_connection_passwd(db_type=db_type)
+        passwd = get_connection_passwd_info(db_type=db_type)
+        database = get_connection_passwd_info(db_type=db_type)
         return MySQLWrapper(client=MySQLClient(db_type=db_type))
     elif db_type == "cloud-sql":
-        passwd = get_connection_passwd(db_type=db_type)
-        database = get_connection_passwd(db_type=db_type)
+        passwd = get_connection_passwd_info(db_type=db_type)
+        database = get_connection_passwd_info(db_type=db_type)
         cnx = mysql.connector.connect(
             host="localhost",
             user="root",
@@ -69,7 +69,7 @@ def db_wrapper_factory(db_type):
         )
         return MySQLWrapper(cnx)
     elif db_type == "bigquery":
-        access_info = get_access_info(db_type)
+        access_info = get_database_access_info(db_type)
         return BigQueryWrapper(
             BigQueryClient(
                 project_id=access_info["project_id"], dataset=access_info["db_name"]
@@ -143,7 +143,7 @@ class DBWrapper:
             commit=True,
         )
 
-    def upload_historical_temperature(
+    def load_historical_temperature(
         self, timestamps: list, temperatures: list, city: str
     ) -> None:
         """Upload historical temperature to database
@@ -162,18 +162,18 @@ class DBWrapper:
             if temp is not None:
                 # this is incorrect in terms of normalization
                 # uuid = generate_uuid(s_time=s_time, city_id=city_id)
-                current_timestamp = convert_timestamp(s_time)
+                # current_timestamp = convert_timestamp(s_time)
                 if max_timestamp is not None:
-                    if max_timestamp > dt.datetime.fromisoformat(current_timestamp):
+                    if max_timestamp > dt.datetime.fromisoformat(s_time):
                         print(
-                            f"Disgarding timestamp {current_timestamp} since current latest entry is newer."
+                            f"Disgarding timestamp {s_time} since current latest entry is newer."
                         )
                         continue
                 params = {
                     "historical_temperature_id": uuid,
                     "city_id": city_id,
-                    "time_measured": current_timestamp,
-                    "temperature": round_float_to_int(temp),
+                    "time_measured": s_time,
+                    "temperature": temp,
                 }
                 query = add_historical_temperature_query(self._db_type)
                 self.client.execute_query(
@@ -183,7 +183,7 @@ class DBWrapper:
                 )
                 uuid += 1
 
-    def upload_current_temperature(self, timestamp: str, temperature: int, city: str):
+    def load_current_temperature(self, timestamp: str, temperature: int, city: str):
         """Upload current temperature data to database.
 
         Args:
@@ -196,8 +196,8 @@ class DBWrapper:
             self.client.execute_query(
                 query_string=update_current_temperature_query(
                     city_id=city_id,
-                    temperature=round_float_to_int(temperature),
-                    timestamp=convert_timestamp(timestamp),
+                    temperature=temperature,
+                    timestamp=timestamp,
                     db_type=self._db_type,
                 ),
                 params=None,
@@ -215,7 +215,7 @@ class DBWrapper:
                 commit=True,
             )
 
-    def upload_city_type(self):
+    def load_city_type(self):
         """Upload city_type data to database."""
         city_type_info = get_city_type_info()
         for city_type in city_type_info.keys():
@@ -226,7 +226,7 @@ class DBWrapper:
                 commit=True,
             )
 
-    def upload_city(self):
+    def load_city(self):
         """Upload city data to database."""
         city_info = get_city_info()
         for city in city_info.keys():
@@ -251,7 +251,7 @@ class DBWrapper:
         result = self.client.execute_query(
             get_max_entry(
                 entry="time_measured",
-                table_name=get_historical_temperature_table("bigquery"),
+                table_name=get_table_name_historical_temperature("bigquery"),
                 city_id=city_id,
             )
         )
@@ -391,8 +391,8 @@ class MySQLClient(DBClient):
     """Wrapper around MySQL connector"""
 
     def __init__(self, db_type, host="localhost", user="root"):
-        passwd = get_connection_passwd(db_type)
-        database = get_connection_database(db_type)
+        passwd = get_connection_passwd_info(db_type)
+        database = get_database_name_info(db_type)
         self.client = mysql.connector.connect(
             host=host, user=user, password=passwd, database=database
         )
@@ -447,7 +447,7 @@ class CSVWrapper:
         table_info = get_table_info()
         city_id = get_city_id_from_info(city)
         data = []
-        columns = table_info[get_historical_temperature_table("bigquery")][
+        columns = table_info[get_table_name_historical_temperature("bigquery")][
             "bigquery"
         ].keys()
         uuid = start_uuid
@@ -458,7 +458,7 @@ class CSVWrapper:
                 data.append((uuid, city_id, time_measured, temperature))
                 uuid += 1
         df = pd.DataFrame(columns=columns, data=data)
-        if file_exists(filename):
+        if pexists(filename):
             _df = pd.read_csv(filename)
             df = pd.concat([_df, df])
         df.to_csv(filename, columns=columns, index=False)
@@ -483,7 +483,7 @@ class BigQueryWrapper(DBWrapper):
             query_string=drop_table_query(table_name=table_name), params=None
         )
 
-    def upload_csv_data(self, table_name: str, filename: str) -> None:
+    def load_csv_data(self, table_name: str, filename: str) -> None:
         """Upload csv-file to bigquery table. This is much faster than directly
         calling SQL INSERT.
 

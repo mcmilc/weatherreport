@@ -3,4 +3,5 @@ __pycache__
 .mypy_cache
 database/bubbly-mission-402701-357b024147cf.json
 database/weather-report-406515-20573f2148d1.json
-data/access.json
+data/access_info.json
+.tmp

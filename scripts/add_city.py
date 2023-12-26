@@ -19,7 +19,7 @@ def main():
             db_type = arg
 
     db_wrapper = db_wrapper_factory(db_type)
-    db_wrapper.upload_city()
+    db_wrapper.load_city()
 
 
 if __name__ == "__main__":
