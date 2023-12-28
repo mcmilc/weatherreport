@@ -1,5 +1,9 @@
-import pandas as pd
+"""
+Documentation used for deployment on EC2:
+https://medium.com/@GeoffreyGordonAshbrook/plotly-dash-in-ec2-production-server-502717843efb
+"""
 import datetime as dt
+import pandas as pd
 import plotly.express as px
 from dash import Dash
 from dash import html
@@ -9,7 +13,7 @@ from dash import Output
 from dash import Input
 from dash import dcc
 
-from weatherreport.database.queries import get_all_city_names
+from weatherreport.data.helpers import get_all_city_names
 from weatherreport.database.dbAPI import db_wrapper_factory
 
 dblAPI = db_wrapper_factory(db_type="bigquery")
@@ -40,6 +44,14 @@ app.layout = html.Div(
     Input(component_id="interval_component", component_property="n_intervals"),
 )
 def update_current_temperature(n):
+    """_summary_
+
+    Args:
+        n (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     df_current = pd.DataFrame(columns=["city", "temperature", "timestamp"])
     for city in get_all_city_names():
         # should have something liek get_all_current_temperatures
