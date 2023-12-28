@@ -153,7 +153,7 @@ class DBWrapper:
             temperature (dict)
             city (str)
         """
-        uuid = self.get_max_historical_temperature_id() + 1
+        uuid = self.get_max_historical_temperature_id(city) + 1
         max_timestamp = None
         if uuid > 1:
             max_timestamp = self.get_latest_historical_temperature_timestamp(city=city)
@@ -165,9 +165,9 @@ class DBWrapper:
                 # current_timestamp = convert_timestamp(s_time)
                 if max_timestamp is not None:
                     if max_timestamp > dt.datetime.fromisoformat(s_time):
-                        print(
-                            f"Disgarding timestamp {s_time} since current latest entry is newer."
-                        )
+                        # print(
+                        #    f"Disgarding timestamp {s_time} since current latest entry is newer."
+                        # )
                         continue
                 params = {
                     "historical_temperature_id": uuid,
@@ -210,7 +210,7 @@ class DBWrapper:
                 "temperature": round_float_to_int(temperature),
             }
             self.client.execute_query(
-                query_string=add_current_temperature_query("mysql"),
+                query_string=add_current_temperature_query(self._db_type),
                 params=params,
                 commit=True,
             )
@@ -251,7 +251,7 @@ class DBWrapper:
         result = self.client.execute_query(
             get_max_entry(
                 entry="time_measured",
-                table_name=get_table_name_historical_temperature("bigquery"),
+                table_name=get_table_name_historical_temperature(self._db_type),
                 city_id=city_id,
             )
         )
@@ -318,17 +318,19 @@ class DBWrapper:
                 return result[0][0]
         return []
 
-    def get_max_historical_temperature_id(self) -> int:
+    def get_max_historical_temperature_id(self, city) -> int:
         """Get max historical temperature id
 
         Returns:
             _type_: _description_
         """
-        query = get_max_historical_temperature_id(self._db_type)
+        city_id = get_city_id_from_info(city)
+        query = get_max_historical_temperature_id(self._db_type, city_id=city_id)
         result = self.client.execute_query(query_string=query)
         if result[0][0] is not None:
             return result[0][0]
-        return 0
+        # always wanna start with 1 otherwise
+        return 1
 
     def get_historical_temperature_deltas(self):
         """Example Code:
@@ -380,11 +382,12 @@ class BigQueryClient(DBClient):
         if params is not None:
             query_string = query_string % params
         job = self.client.query(query=query_string, job_config=self.default_job_config)
-        result = []
+        result = job.result()
+        output = []
         if not commit:
-            for out in job.result():
-                result.append(out)
-        return result
+            for r in result:
+                output.append(r)
+        return output
 
 
 class MySQLClient(DBClient):
@@ -453,9 +456,7 @@ class CSVWrapper:
         uuid = start_uuid
         for s_time, temperature in zip(timestamps, temperatures):
             if temperature is not None:
-                time_measured = convert_timestamp(s_time)
-                temperature = round_float_to_int(temperature)
-                data.append((uuid, city_id, time_measured, temperature))
+                data.append((uuid, city_id, s_time, temperature))
                 uuid += 1
         df = pd.DataFrame(columns=columns, data=data)
         if pexists(filename):
@@ -492,7 +493,7 @@ class BigQueryWrapper(DBWrapper):
             filename (_type_): _description_
         """
         table_info = get_table_info()
-        column_data = table_info[table_name]["bigquery"]
+        column_data = table_info[table_name][self._db_type]
         schema = []
         for col in column_data.keys():
             if column_data[col]["null"] == "NOT NULL":
@@ -511,7 +512,7 @@ class BigQueryWrapper(DBWrapper):
             skip_leading_rows=1,
             source_format=bigquery.SourceFormat.CSV,
         )
-        self.client.client.load_table_from_file(
+        lj = self.client.client.load_table_from_file(
             open(filename, "rb"),
             destination=self.client.project_id
             + "."
@@ -520,6 +521,12 @@ class BigQueryWrapper(DBWrapper):
             + table_name,
             job_config=jc,
         )
+        lj.result()
+
+    def flush_table(self, table_name):
+        """Remove all entries from table."""
+        query = flush_table_query(table_name=table_name)
+        self.client.execute_query(query_string=query, commit=True)
 
 
 class MySQLWrapper(DBWrapper):
@@ -528,7 +535,3 @@ class MySQLWrapper(DBWrapper):
     def __init__(self, client: MySQLClient):
         super().__init__(client=client)
         self._db_type = "mysql"
-
-
-if __name__ == "__main__":
-    pass

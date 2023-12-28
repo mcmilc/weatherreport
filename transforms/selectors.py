@@ -1,6 +1,9 @@
 def select_historical_temperature(data, interval="hourly"):
     timestamps = data[interval]["time"]
-    temperature_data = data[interval]["temperature_2m"]
+    temperature_data = [d for d in data[interval]["temperature_2m"] if d is not None]
+    # should be part of a transform step
+    L = len(temperature_data)
+    timestamps = timestamps[:L]
     return timestamps, temperature_data
 
 

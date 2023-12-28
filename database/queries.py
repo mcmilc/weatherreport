@@ -119,7 +119,7 @@ def get_city_id_query(city: str, db_type: str):
 
 
 def flush_table_query(table_name: str):
-    return f"DELETE FROM {table_name}"
+    return f"DELETE FROM {table_name} WHERE 1=1"
 
 
 def create_table_query(table_name, db_type):
@@ -146,10 +146,10 @@ def get_max_entry(entry: str, table_name: str, city_id: int = None) -> str:
         return f"SELECT MAX({entry}) from {table_name} WHERE city_id = {city_id}"
 
 
-def get_max_historical_temperature_id(db_type) -> str:
+def get_max_historical_temperature_id(db_type, city_id) -> str:
     """Get max PK entry of historical temperature table."""
     historical_table = get_table_name_historical_temperature(db_type)
-    return f"SELECT MAX(historical_temperature_id) FROM {historical_table}"
+    return f"SELECT MAX(historical_temperature_id) FROM {historical_table} WHERE city_id = {city_id}"
 
 
 def get_max_temperature_delta_between_city_pair(city_id_1, city_id_2):

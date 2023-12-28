@@ -3,7 +3,7 @@ import os
 import json
 import tempfile
 
-from weatherreport.config.config import ENV_VAR_NAME
+from weatherreport.config.config import WR_TMPDIR
 from weatherreport.config.config import weather_report_root
 
 from weatherreport.utilities.filesystem_utils import pjoin
@@ -94,7 +94,7 @@ def get_all_city_names():
     return list(read_json_file(city_info).keys())
 
 
-def append_suffix_to_filename(filename: str, suffix: str):
+def append_suffix(filename: str, suffix: str):
     """Append suffix to filename."""
     fn = filename
     if pisdir(filename):
@@ -109,7 +109,7 @@ def generate_temp_filename() -> str:
     Returns:
         str: full path to temporary file
     """
-    _, filename = tempfile.mkstemp(dir=os.environ[ENV_VAR_NAME])
+    _, filename = tempfile.mkstemp(dir=os.environ[WR_TMPDIR])
     return filename
 
 
@@ -120,11 +120,11 @@ def has_file_extension(filename):
     return True
 
 
-def store_as_json_to_tempdir(data: dict, filename: str):
+def to_json(data: dict, filename: str):
     """Stores data in temporary dir."""
     # if not has_file_extension(filename):
     #    filename = filename + ".json"
-    with open(filename, "wb") as fp:
+    with open(filename, "w") as fp:
         json.dump(obj=data, fp=fp)
 
 

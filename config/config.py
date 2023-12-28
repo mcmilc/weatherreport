@@ -4,7 +4,7 @@ from weatherreport.utilities.filesystem_utils import pjoin
 from weatherreport.utilities.filesystem_utils import pexists
 
 weather_report_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-ENV_VAR_NAME = "WEATHERREPORT_TEMPDIR"
+WR_TMPDIR = "WEATHERREPORT_TEMPDIR"
 
 
 def setup_temp_datastore(var_name):
@@ -16,4 +16,4 @@ def setup_temp_datastore(var_name):
         os.environ[var_name] = temp_dir
 
 
-setup_temp_datastore(ENV_VAR_NAME)
+setup_temp_datastore(WR_TMPDIR)
