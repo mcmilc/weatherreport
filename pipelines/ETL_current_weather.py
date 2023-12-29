@@ -1,4 +1,9 @@
-"""DAG that uploads current temperature to database."""
+"""DAG that uploads current temperature to database.
+
+Check workflows in this tutorial to run airtflow webserver/scheduler:
+
+https://medium.com/@abraham.pabbathi/airflow-on-aws-ec2-instance-with-ubuntu-aff8d3206171
+"""
 import os
 import json
 import datetime as dt
