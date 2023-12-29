@@ -52,6 +52,9 @@ def main():
             baseline_timestamp=baseline_timestamp,
         )
     # load
+    print(
+        f"Temperature data has {len(timestamps)} timestamp and {len(temperatures)} temperature entries."
+    )
     csv_wrapper.create_historical_temperature_file(
         timestamps=timestamps,
         temperatures=temperatures,

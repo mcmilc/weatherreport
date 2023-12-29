@@ -13,6 +13,7 @@ from weatherreport.utilities.filesystem_utils import pexists
 from weatherreport.utilities.helpers import build_date
 
 # HELPERS
+from weatherreport.data.helpers import read_json_file
 from weatherreport.data.helpers import get_database_access_info
 from weatherreport.data.helpers import append_suffix
 from weatherreport.data.helpers import get_all_city_names
