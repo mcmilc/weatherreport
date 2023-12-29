@@ -199,7 +199,6 @@ class DBWrapper:
                 timestamp=timestamp,
                 db_type=self._db_type,
             )
-            print(query)
             self.client.execute_query(
                 query_string=query,
                 params=None,
@@ -213,7 +212,6 @@ class DBWrapper:
             }
             query = add_current_temperature_query(self._db_type)
             query = query % params
-            print(query)
             self.client.execute_query(
                 query_string=query,
                 params=None,
