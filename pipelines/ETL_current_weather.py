@@ -12,7 +12,7 @@ from weatherreport.utilities.filesystem_utils import pjoin
 from weatherreport.utilities.filesystem_utils import pexists
 
 # HELPERS
-from weatherreport.data.helpers import read_json_file
+from weatherreport.data.helpers import get_database_access_info
 from weatherreport.data.helpers import append_suffix
 from weatherreport.data.helpers import get_all_city_names
 from weatherreport.data.helpers import generate_temp_filename
@@ -30,7 +30,7 @@ from weatherreport.transforms.selectors import select_current_temperature
 
 
 default_args = {
-    "owner": "Matthias Milczynski",
+    "owner": get_database_access_info("airflow")["owner"],
     "start_date": pendulum.today("UTC").add(days=0),
     "email": "matthias.milczynski@gmail.com",
     "email_on_failure": False,
