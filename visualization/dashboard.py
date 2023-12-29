@@ -1,6 +1,15 @@
 """
 Documentation used for deployment on EC2:
 https://medium.com/@GeoffreyGordonAshbrook/plotly-dash-in-ec2-production-server-502717843efb
+
+Once S3 and EC2 are setup run from within visualization folder:
+
+gunicorn dashboard:server --bind=0.0.0.0:8050
+
+Access dashboard under:
+
+http://ec2-54-183-184-174.us-west-1.compute.amazonaws.com:8050/
+
 """
 import datetime as dt
 import pandas as pd
@@ -56,6 +65,7 @@ def update_current_temperature(n):
     for city in get_all_city_names():
         # should have something liek get_all_current_temperatures
         out = dblAPI.get_current_temperature(city)
+        print(f"{city} temperature {out}")
         if out is not None:
             temperature = out[0]
             timestamp = out[1]

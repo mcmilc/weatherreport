@@ -61,7 +61,7 @@ def initialize_temp_folder(**kwargs):
 
     cities = get_all_city_names()
     params = {
-        "db_type": "mysql",
+        "db_type": "bigquery",
         "cities": cities,
         "tmp_temperature": tmp_temperature,
         "tmp_timestamp": tmp_timestamp,
