@@ -21,7 +21,7 @@ def add_historical_temperature_query(db_type):
     historical_table = get_table_name_historical_temperature(db_type)
     return (
         f"INSERT INTO {historical_table} (historical_temperature_id, city_id, time_measured, temperature) "
-        f"VALUES (%(historical_temperature_id)s, %(city_id)s, TIMESTAMP(%(time_measured)s), %(temperature)s)"
+        f"VALUES (%(historical_temperature_id)s, %(city_id)s, TIMESTAMP('%(time_measured)s'), %(temperature)s)"
     )
 
 
@@ -29,7 +29,7 @@ def add_current_temperature_query(db_type):
     current_table = get_table_name_current_temperature(db_type)
     return (
         f"INSERT INTO {current_table} (city_id, time_measured, temperature) "
-        f"VALUES (%(city_id)s, TIMESTAMP(%(time_measured)s), %(temperature)s)"
+        f"VALUES (%(city_id)s, TIMESTAMP('%(time_measured)s'), %(temperature)s)"
     )
 
 

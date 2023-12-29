@@ -147,7 +147,6 @@ def _load_data_to_db(**kwargs):
             timestamp = fp.read()
         with open(_tmp_temperature, "rt") as fp:
             temperature = int(fp.read())
-        temperature = read_json_file(_tmp_temperature)
         db_wrapper.load_current_temperature(
             timestamp=timestamp, temperature=temperature, city=city
         )

@@ -193,13 +193,15 @@ class DBWrapper:
         """
         city_id = get_city_id_from_info(city)
         if self.city_has_current_temperature(city):
+            query = update_current_temperature_query(
+                city_id=city_id,
+                temperature=temperature,
+                timestamp=timestamp,
+                db_type=self._db_type,
+            )
+            print(query)
             self.client.execute_query(
-                query_string=update_current_temperature_query(
-                    city_id=city_id,
-                    temperature=temperature,
-                    timestamp=timestamp,
-                    db_type=self._db_type,
-                ),
+                query_string=query,
                 params=None,
                 commit=True,
             )
@@ -207,11 +209,14 @@ class DBWrapper:
             params = {
                 "city_id": city_id,
                 "time_measured": timestamp,
-                "temperature": round_float_to_int(temperature),
+                "temperature": temperature,
             }
+            query = add_current_temperature_query(self._db_type)
+            query = query % params
+            print(query)
             self.client.execute_query(
-                query_string=add_current_temperature_query(self._db_type),
-                params=params,
+                query_string=query,
+                params=None,
                 commit=True,
             )
 
