@@ -1,10 +1,11 @@
 """Script to create csv file with historical temperature data."""
 import sys
 import getopt
+from weatherreport.data.helpers import get_city_timezone
 from weatherreport.utilities.helpers import build_date
 from weatherreport.utilities.helpers import parse_date_arg
 from weatherreport.transforms.selectors import select_historical_temperature
-from weatherreport.transforms.converters import convert_timestamp
+from weatherreport.transforms.converters import convert_timestamp_to_utc
 from weatherreport.transforms.converters import round_float_to_int
 from weatherreport.transforms.filters import filter_temperature_by_time
 from weatherreport.weatherAPI.weatherClient import weather_client_factory
@@ -42,8 +43,9 @@ def main():
         start_date=start_date, end_date=end_date, city=city, interval=interval
     )
     # transform
+    timezone = get_city_timezone(city)
     timestamps, temperatures = select_historical_temperature(data, interval)
-    timestamps = [convert_timestamp(t) for t in timestamps]
+    timestamps = [convert_timestamp_to_utc(t, timezone) for t in timestamps]
     temperatures = [round_float_to_int(t) for t in temperatures]
     if baseline_timestamp is not None:
         timestamps, temperatures = filter_temperature_by_time(

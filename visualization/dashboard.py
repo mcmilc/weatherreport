@@ -23,7 +23,9 @@ from dash import Input
 from dash import dcc
 
 from weatherreport.data.helpers import get_all_city_names
+from weatherreport.data.helpers import get_city_timezone
 from weatherreport.database.dbAPI import db_wrapper_factory
+from weatherreport.transforms.converters import convert_timestamp_from_utc
 
 dblAPI = db_wrapper_factory(db_type="bigquery")
 
@@ -69,6 +71,10 @@ def update_current_temperature(n):
         if out is not None:
             temperature = out[0]
             timestamp = out[1]
+            timezone = get_city_timezone(city)
+            timestamp = convert_timestamp_from_utc(
+                timestamp=timestamp, timezone=timezone
+            )
             if len(df_current) > 0:
                 df_current = pd.concat(
                     [

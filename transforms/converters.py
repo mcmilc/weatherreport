@@ -1,11 +1,26 @@
 """Conversion functions"""
 import datetime as dt
 import numpy as np
+import pytz
 
 
-def convert_timestamp(timestamp: str) -> str:
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def convert_timestamp_from_utc(timestamp: dt.datetime, timezone: str):
+    new_tz = pytz.timezone(timezone)
+    return timestamp.astimezone(new_tz)
+
+
+def convert_timestamp_to_utc(timestamp: str, timezone: str) -> str:
     """Remove T from UTC timeformat for SQL-type database timestamp formats."""
-    return str.replace(timestamp, "T", " ") + ":00"
+    timestamp = str.replace(timestamp, "T", " ") + ":00"
+    dt_timestamp = dt.datetime.strptime(timestamp, TIME_FORMAT)
+    tz = pytz.timezone(timezone)
+    dt_timestamp = tz.localize(dt_timestamp)
+    utc_tz = pytz.timezone("utc")
+    new_dt_timestamp = dt_timestamp.astimezone(utc_tz)
+    return new_dt_timestamp.strftime(TIME_FORMAT)
 
 
 def round_float_to_int(value: float) -> int:

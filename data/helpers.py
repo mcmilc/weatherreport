@@ -94,6 +94,11 @@ def get_all_city_names():
     return list(read_json_file(city_info).keys())
 
 
+def get_city_timezone(city: str) -> str:
+    city_info = pjoin(weather_report_root, "data", "city_info.json")
+    return read_json_file(city_info)[city]["timezone"].replace("%2F", "/")
+
+
 def append_suffix(filename: str, suffix: str):
     """Append suffix to filename."""
     fn = filename

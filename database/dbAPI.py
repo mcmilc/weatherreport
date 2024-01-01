@@ -23,10 +23,6 @@ from weatherreport.data.helpers import get_city_type_info
 from weatherreport.data.helpers import get_database_access_info
 from weatherreport.data.helpers import get_table_name_historical_temperature
 
-# TRANSFORMS
-from weatherreport.transforms.converters import round_float_to_int
-from weatherreport.transforms.converters import convert_timestamp
-
 # QUERIES
 from weatherreport.database.queries import flush_table_query
 from weatherreport.database.queries import get_city_id_query
@@ -318,7 +314,7 @@ class DBWrapper:
             query = get_current_temperature_query(city=city, db_type=self._db_type)
             result = self.client.execute_query(query_string=query)
             if len(result) > 0:
-                return result[0][0]
+                return result[0]
         return []
 
     def get_max_historical_temperature_id(self, city) -> int:

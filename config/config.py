@@ -3,8 +3,8 @@ import os
 from weatherreport.utilities.filesystem_utils import pjoin
 from weatherreport.utilities.filesystem_utils import pexists
 
-weather_report_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 WR_TMPDIR = "WEATHERREPORT_TEMPDIR"
+weather_report_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
 def setup_temp_datastore(var_name):
