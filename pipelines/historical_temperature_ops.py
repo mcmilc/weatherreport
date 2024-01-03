@@ -55,10 +55,10 @@ def _initialize_temp_folder(**kwargs):
     cities = get_all_city_names()
     params = {
         "db_type": "bigquery",
-        "cities": cities,
+        "cities": ["Hawthorne"],
         "tmp_temperatures": tmp_temperatures,
         "tmp_timestamps": tmp_timestamps,
-        "start_date": "1970_1_1",
+        "start_date": "1950_1_1",
     }
     data_string = json.dumps(params)
     ti.xcom_push("params", data_string)
@@ -113,7 +113,8 @@ def _extract_data(**kwargs):
                     break
                 else:
                     print(f"This is historical data: {data}")
-            time.sleep(1)
+            # add this sleep time to not run into minutely API request limit
+            time.sleep(61)
         timestamp, temperature = select_historical_temperature(data)
         _tmp_timestamps = append_suffix(filename=tmp_timestamps, suffix="_hist_" + city)
         _tmp_temperatures = append_suffix(
