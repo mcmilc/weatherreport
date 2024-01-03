@@ -113,7 +113,7 @@ def _extract_data(**kwargs):
                     break
                 else:
                     print(f"This is historical data: {data}")
-            # add this sleep time to not run into minutely API request limit
+            # add this sleep time to try to resolve minutely API request limit
             time.sleep(61)
         timestamp, temperature = select_historical_temperature(data)
         _tmp_timestamps = append_suffix(filename=tmp_timestamps, suffix="_hist_" + city)
@@ -132,6 +132,7 @@ def _transform_timestamps(**kwargs):
     cities = params["cities"]
     tmp_timestamps = params["tmp_timestamps"]
     for city in cities:
+        print(f"Transforming timestamps for {city}")
         _tmp_timestamps = append_suffix(filename=tmp_timestamps, suffix="_hist_" + city)
         try:
             data = read_json_file(_tmp_timestamps)
@@ -152,6 +153,7 @@ def _transform_temperatures(**kwargs):
     cities = params["cities"]
     tmp_temperatures = params["tmp_temperatures"]
     for city in cities:
+        print(f"Transforming temperature for {city}")
         _tmp_temperatures = append_suffix(
             filename=tmp_temperatures, suffix="_hist_" + city
         )
