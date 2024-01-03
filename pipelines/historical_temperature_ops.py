@@ -1,9 +1,14 @@
+"""_summary_
+"""
+import time
+import getopt
 import datetime as dt
 import os
+import sys
 import json
 import pendulum
-import time
 
+from weatherreport.pipelines.ti_mock import TIMock
 from weatherreport.config.config import WR_TMPDIR
 from weatherreport.utilities.filesystem_utils import pjoin
 from weatherreport.utilities.filesystem_utils import pexists
@@ -37,6 +42,7 @@ _fs_metadata = "_historical_metadata.json"
 
 def _initialize_temp_folder(**kwargs):
     ti = kwargs["ti"]
+    city = kwargs["city"]
     if not pexists(pjoin(os.environ[WR_TMPDIR], _fs_metadata)):
         tmp_timestamps = generate_temp_filename()
         tmp_temperatures = generate_temp_filename()
@@ -55,7 +61,7 @@ def _initialize_temp_folder(**kwargs):
     cities = get_all_city_names()
     params = {
         "db_type": "bigquery",
-        "cities": cities,
+        "cities": [city],
         "tmp_temperatures": tmp_temperatures,
         "tmp_timestamps": tmp_timestamps,
         "start_date": "1950_1_1",
@@ -103,7 +109,7 @@ def _extract_data(**kwargs):
         n_retries = 3
         for n in range(n_retries):
             print(
-                f"Attempt nr. {n} perform api-request for temperature from {start_date} to {end_date} for {city}."
+                f"Attempt nr. {n + 1} perform api-request for temperature from {start_date} to {end_date} for {city}."
             )
             data = wc.get_historical_temperature(
                 start_date=start_date, end_date=end_date, city=city, interval="hourly"
@@ -190,7 +196,7 @@ def _load_data_to_db(**kwargs):
                 )
             elif db_type == "bigquery":
                 csv_wrapper = CSVWrapper()
-                start_uuid = db_wrapper.get_max_historical_temperature_id(city)
+                start_uuid = db_wrapper.get_max_historical_temperature_id()
                 baseline_timestamp = (
                     db_wrapper.get_latest_historical_temperature_timestamp(city)
                 )
@@ -214,19 +220,36 @@ def _load_data_to_db(**kwargs):
             pass
 
 
+def _remove_duplicates(**kwargs):
+    ti = kwargs["ti"]
+    params = ti.xcom_pull(task_ids="initialize", key="params")
+    params = json.loads(params)
+    db_type = params["db_type"]
+    db_wrapper = db_wrapper_factory(db_type)
+    cities = params["cities"]
+    for city in cities:
+        print(f"Removing duplicates for {city}.")
+        db_wrapper.remove_duplicated_historical_entries(city)
+
+
 def _clean_up():
+    print("Cleaning up temporary data.")
     for f in os.listdir(os.environ[WR_TMPDIR]):
         remove_temporary_file(pjoin(os.environ[WR_TMPDIR], f))
 
 
 if __name__ == "__main__":
-    from weatherreport.pipelines.ti_mock import TIMock
-
+    input_args = sys.argv[1:]
+    optlist, _ = getopt.getopt(input_args, "c:")
+    for opt, arg in optlist:
+        if opt == "-c":
+            city = arg
     _ti = TIMock()
     _clean_up()
-    _initialize_temp_folder(ti=_ti)
+    _initialize_temp_folder(ti=_ti, city=city)
     _extract_data(ti=_ti)
     _transform_timestamps(ti=_ti)
     _transform_temperatures(ti=_ti)
     _load_data_to_db(ti=_ti)
+    _remove_duplicates(ti=_ti)
     _clean_up()

@@ -44,6 +44,7 @@ from weatherreport.database.queries import create_table_query
 from weatherreport.database.queries import drop_table_query
 from weatherreport.database.queries import get_max_entry
 from weatherreport.database.queries import get_max_historical_temperature_id
+from weatherreport.database.queries import remove_entries_with_duplicated_timestamps
 
 
 def db_wrapper_factory(db_type):
@@ -149,7 +150,7 @@ class DBWrapper:
             temperature (dict)
             city (str)
         """
-        uuid = self.get_max_historical_temperature_id(city) + 1
+        uuid = self.get_max_historical_temperature_id() + 1
         max_timestamp = None
         if uuid > 1:
             max_timestamp = self.get_latest_historical_temperature_timestamp(city=city)
@@ -317,14 +318,13 @@ class DBWrapper:
                 return result[0]
         return []
 
-    def get_max_historical_temperature_id(self, city) -> int:
+    def get_max_historical_temperature_id(self) -> int:
         """Get max historical temperature id
 
         Returns:
             _type_: _description_
         """
-        city_id = get_city_id_from_info(city)
-        query = get_max_historical_temperature_id(self._db_type, city_id=city_id)
+        query = get_max_historical_temperature_id(self._db_type)
         result = self.client.execute_query(query_string=query)
         if result[0][0] is not None:
             return result[0][0]
@@ -350,6 +350,18 @@ class DBWrapper:
     def flush_table(self, table_name):
         """Remove all entries from table."""
         query = flush_table_query(table_name=table_name)
+        self.client.execute_query(query_string=query, commit=True)
+
+    def remove_duplicated_historical_entries(self, city):
+        """_summary_
+
+        Args:
+            city (_type_): _description_
+        """
+        city_id = get_city_id_from_info(city)
+        query = remove_entries_with_duplicated_timestamps(
+            self._db_type, city_id=city_id
+        )
         self.client.execute_query(query_string=query, commit=True)
 
 

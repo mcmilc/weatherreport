@@ -146,10 +146,10 @@ def get_max_entry(entry: str, table_name: str, city_id: int = None) -> str:
         return f"SELECT MAX({entry}) from {table_name} WHERE city_id = {city_id}"
 
 
-def get_max_historical_temperature_id(db_type, city_id) -> str:
+def get_max_historical_temperature_id(db_type) -> str:
     """Get max PK entry of historical temperature table."""
     historical_table = get_table_name_historical_temperature(db_type)
-    return f"SELECT MAX(historical_temperature_id) FROM {historical_table} WHERE city_id = {city_id}"
+    return f"SELECT MAX(historical_temperature_id) FROM {historical_table}"
 
 
 def get_max_temperature_delta_between_city_pair(city_id_1, city_id_2):
@@ -160,6 +160,35 @@ def get_max_temperature_delta_between_city_pair(city_id_1, city_id_2):
         f"JOIN (SELECT city_id as city_id_2, time_measured as time_2, "
         f"temperature as temp_2 FROM historical_temperature WHERE city_id = {city_id_2}) tab_2 "
         f"ON tab_1.time_1 = tab_2.time_2"
+    )
+
+
+def remove_entries_with_duplicated_timestamps(db_type, city_id):
+    historical_table = get_table_name_historical_temperature(db_type)
+    return (
+        f"DELETE "
+        f"FROM "
+        f"{historical_table} "
+        f"WHERE "
+        f"historical_temperature_id IN ( "
+        f"SELECT "
+        f"table_2.historical_temperature_id "
+        f"FROM ( "
+        f"SELECT "
+        f"historical_temperature_id, "
+        f"city_id, "
+        f"time_measured, "
+        f"temperature, "
+        f"ROW_NUMBER() OVER(PARTITION BY time_measured ORDER BY historical_temperature_id DESC) AS Row_Number "
+        f"FROM ( "
+        f"SELECT "
+        f"* "
+        f"FROM "
+        f"{historical_table} "
+        f"WHERE "
+        f"city_id = {city_id}) table_1 ) table_2 "
+        f"WHERE "
+        f"table_2.Row_Number > 1) "
     )
 
 
