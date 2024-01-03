@@ -329,7 +329,7 @@ class DBWrapper:
         if result[0][0] is not None:
             return result[0][0]
         # always wanna start with 1 otherwise
-        return 1
+        return 0
 
     def get_historical_temperature_deltas(self):
         """Example Code:
