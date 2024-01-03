@@ -55,7 +55,7 @@ def _initialize_temp_folder(**kwargs):
     cities = get_all_city_names()
     params = {
         "db_type": "bigquery",
-        "cities": ["Hawthorne"],
+        "cities": cities,
         "tmp_temperatures": tmp_temperatures,
         "tmp_timestamps": tmp_timestamps,
         "start_date": "1950_1_1",
@@ -101,10 +101,10 @@ def _extract_data(**kwargs):
         ]
         end_date = build_date(year, month, day)
         n_retries = 3
-        print(
-            f"attempting to get temperature from {start_date} to {end_date} for {city}."
-        )
-        for _ in range(n_retries):
+        for n in range(n_retries):
+            print(
+                f"Attempt nr. {n} perform api-request for temperature from {start_date} to {end_date} for {city}."
+            )
             data = wc.get_historical_temperature(
                 start_date=start_date, end_date=end_date, city=city, interval="hourly"
             )
@@ -174,6 +174,7 @@ def _load_data_to_db(**kwargs):
     tmp_timestamps = params["tmp_timestamps"]
     tmp_temperatures = params["tmp_temperatures"]
     for city in cities:
+        print(f"Uploading temperature data for {city}.")
         _tmp_timestamps = append_suffix(filename=tmp_timestamps, suffix="_hist_" + city)
         _tmp_temperatures = append_suffix(
             filename=tmp_temperatures, suffix="_hist_" + city
@@ -220,6 +221,7 @@ if __name__ == "__main__":
     from weatherreport.pipelines.ti_mock import TIMock
 
     _ti = TIMock()
+    _clean_up()
     _initialize_temp_folder(ti=_ti)
     _extract_data(ti=_ti)
     _transform_timestamps(ti=_ti)
