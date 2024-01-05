@@ -22,6 +22,7 @@ _fs_metadata = "_current_metadata.json"
 
 
 def _initialize_temp_folder(**kwargs):
+    print("Intialize temp folder")
     ti = kwargs["ti"]
     if not pexists(pjoin(os.environ[WR_TMPDIR], _fs_metadata)):
         tmp_timestamp = generate_temp_filename()
@@ -60,6 +61,7 @@ def _extract_data(**kwargs):
     Returns:
         _type_: _description_
     """
+    print("extract data")
     ti = kwargs["ti"]
     params = ti.xcom_pull(task_ids="initialize", key="params")
     params = json.loads(params)
@@ -80,6 +82,7 @@ def _extract_data(**kwargs):
 
 # Transform timestamps
 def _transform_timestamp(**kwargs):
+    print("transform timestamps")
     ti = kwargs["ti"]
     params = ti.xcom_pull(task_ids="initialize", key="params")
     params = json.loads(params)
@@ -97,6 +100,7 @@ def _transform_timestamp(**kwargs):
 
 # Transform temperature
 def _transform_temperature(**kwargs):
+    print("transform temperature")
     ti = kwargs["ti"]
     params = ti.xcom_pull(task_ids="initialize", key="params")
     params = json.loads(params)
@@ -113,6 +117,7 @@ def _transform_temperature(**kwargs):
 
 # Load data
 def _load_data_to_db(**kwargs):
+    print("load data")
     ti = kwargs["ti"]
     params = ti.xcom_pull(task_ids="initialize", key="params")
     params = json.loads(params)
@@ -133,6 +138,7 @@ def _load_data_to_db(**kwargs):
 
 
 def _clean_up():
+    print("Clean up")
     for f in os.listdir(os.environ[WR_TMPDIR]):
         remove_temporary_file(pjoin(os.environ[WR_TMPDIR], f))
 
