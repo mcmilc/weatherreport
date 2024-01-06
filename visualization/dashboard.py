@@ -10,6 +10,8 @@ Access dashboard under:
 
 http://ec2-54-183-184-174.us-west-1.compute.amazonaws.com:8050/
 
+Check this article:
+https://towardsdatascience.com/how-to-use-docker-to-deploy-a-dashboard-app-on-aws-8df5fb322708
 """
 import datetime as dt
 import pandas as pd
