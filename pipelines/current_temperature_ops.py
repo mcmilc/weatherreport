@@ -1,4 +1,5 @@
 import os
+import datetime as dt
 import json
 from weatherreport.config.config import WR_TMPDIR
 from weatherreport.utilities.filesystem_utils import pjoin
@@ -22,6 +23,7 @@ _fs_metadata = "_current_metadata.json"
 
 
 def _initialize_temp_folder(**kwargs):
+    print(f"Starting current temperature update {str(dt.datetime.now())}")
     print("Intialize temp folder")
     ti = kwargs["ti"]
     if not pexists(pjoin(os.environ[WR_TMPDIR], _fs_metadata)):
